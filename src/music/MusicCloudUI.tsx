@@ -1,0 +1,359 @@
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { activeLyricIndex } from "./lyrics";
+import { checkQrSession, createQrSession, getAccount, getPlaylistGalaxy, getUserPlaylists, searchSongs } from "./api";
+import { clearCookie, readCookie, writeCookie } from "./storage";
+import { useAudioPlayer } from "./useAudioPlayer";
+import type { MusicArtist, MusicGalaxyData, MusicTrack, PlaylistSummary, QrSession, UserProfile } from "./types";
+import { useStore } from "../state/store";
+
+type Tab = "login" | "playlist" | "search";
+
+interface MusicCloudUIProps {
+  galaxy: MusicGalaxyData;
+  setGalaxy: (galaxy: MusicGalaxyData) => void;
+  selectedTrack: MusicTrack | null;
+  selectedArtist: MusicArtist | null;
+  onSelectedTrack: (track: MusicTrack | null) => void;
+  onSelectedArtist: (artist: MusicArtist | null) => void;
+}
+
+function formatTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "00:00";
+  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+}
+
+export function MusicCloudUI({
+  galaxy,
+  setGalaxy,
+  selectedTrack,
+  selectedArtist,
+  onSelectedTrack,
+  onSelectedArtist,
+}: MusicCloudUIProps) {
+  const [cookie, setCookie] = useState(readCookie);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [qr, setQr] = useState<QrSession | null>(null);
+  const [tab, setTab] = useState<Tab>("login");
+  const [collapsed, setCollapsed] = useState(false);
+  const [loginText, setLoginText] = useState("扫码登录后加载你的网易云歌单");
+  const [playlists, setPlaylists] = useState<PlaylistSummary[]>([]);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<MusicTrack[]>([]);
+  const [notice, setNotice] = useState("");
+  const lyricLineRefs = useRef<Array<HTMLParagraphElement | null>>([]);
+  const player = useAudioPlayer(cookie);
+  const quality = useStore((state) => state.quality);
+  const toggleQuality = useStore((state) => state.toggleQuality);
+
+  useEffect(() => {
+    if (!cookie) return;
+    setLoading(true);
+    getAccount(cookie)
+      .then(async (account) => {
+        setProfile(account);
+        setQr(null);
+        if (account) {
+          setPlaylists(await getUserPlaylists(account.userId, cookie));
+          setTab("playlist");
+          setLoginText("已登录");
+        }
+      })
+      .catch(() => setNotice("无法读取账号，请确认网易云 API 服务正在 localhost:3000 运行。"))
+      .finally(() => setLoading(false));
+  }, [cookie]);
+
+  useEffect(() => {
+    if (!qr || profile) return;
+    const id = window.setInterval(async () => {
+      try {
+        const result = await checkQrSession(qr.key);
+        if (result.status === "waiting") setLoginText("等待手机扫码");
+        if (result.status === "scanned") setLoginText("已扫码，请在手机上确认");
+        if (result.status === "expired") setLoginText("二维码已过期，请刷新");
+        if (result.status === "error") setLoginText("登录状态检查失败");
+        if (result.status === "authorized" && result.cookie) {
+          writeCookie(result.cookie);
+          setCookie(result.cookie);
+          setQr(null);
+          setLoginText("登录成功，正在同步歌单");
+        }
+      } catch {
+        setLoginText("登录状态检查失败");
+      }
+    }, 1800);
+    return () => window.clearInterval(id);
+  }, [profile, qr]);
+
+  const artistTracks = useMemo(() => {
+    if (!selectedArtist) return [];
+    return galaxy.tracks.filter((track) => track.artistId === selectedArtist.id);
+  }, [galaxy.tracks, selectedArtist]);
+
+  const startQr = async () => {
+    setLoginText("正在生成二维码");
+    setNotice("");
+    try {
+      setQr(await createQrSession());
+      setLoginText("等待手机扫码");
+    } catch {
+      setLoginText("二维码生成失败");
+      setNotice("无法连接网易云 API。请先运行 npm run netease:api，再刷新页面重试。");
+    }
+  };
+
+  const logout = () => {
+    clearCookie();
+    setCookie("");
+    setProfile(null);
+    setQr(null);
+    setPlaylists([]);
+    setSelectedPlaylist(null);
+    setGalaxy({ artists: [], tracks: [] });
+    onSelectedTrack(null);
+    onSelectedArtist(null);
+    setTab("login");
+    setNotice("");
+    setLoginText("扫码登录后加载你的网易云歌单");
+  };
+
+  const loadPlaylist = async (playlist: PlaylistSummary) => {
+    setLoading(true);
+    setSelectedPlaylist(playlist.id);
+    setNotice("");
+    try {
+      const next = await getPlaylistGalaxy(playlist.id, cookie);
+      setGalaxy(next);
+      player.setQueue(next.tracks);
+      onSelectedTrack(null);
+      onSelectedArtist(null);
+      setCollapsed(true);
+    } catch {
+      setNotice("歌单加载失败，请稍后重试。");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runSearch = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!search.trim()) return;
+    setNotice("");
+    try {
+      setSearchResults(await searchSongs(search.trim(), cookie));
+    } catch {
+      setNotice("搜索失败：请确认网易云 API 服务正在 localhost:3000 运行。");
+    }
+  };
+
+  const playTrack = (track: MusicTrack, queue = galaxy.tracks) => {
+    onSelectedTrack(track);
+    onSelectedArtist(galaxy.artists.find((artist) => artist.id === track.artistId) ?? selectedArtist ?? null);
+    void player.playTrack(track, queue.length ? queue : [track]);
+  };
+
+  useEffect(() => {
+    (window as unknown as { musicCloudPlayTrack?: (track: MusicTrack) => void }).musicCloudPlayTrack = playTrack;
+    return () => {
+      delete (window as unknown as { musicCloudPlayTrack?: (track: MusicTrack) => void }).musicCloudPlayTrack;
+    };
+  });
+
+  const activeLine = activeLyricIndex(player.playback.lyric, player.playback.progress);
+  const panelTrack = selectedTrack;
+  const nowTrack = player.playback.currentTrack ?? selectedTrack;
+  const duration = player.playback.duration || (nowTrack?.duration || 0) / 1000 || 1;
+  const tabTitle = profile ? profile.nickname : "扫码登录";
+
+  useEffect(() => {
+    if (activeLine < 0) return;
+    lyricLineRefs.current[activeLine]?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [activeLine]);
+
+  return (
+    <>
+      <div className="hud-top music-hud">
+        <div className="title">
+          音乐云 <span className="title-en">Music Cloud</span>
+        </div>
+        <div className="seg" title="音乐云模式">
+          <button className="seg-btn on">歌单星系</button>
+          <button className="seg-btn">歌手主星</button>
+          <button className="seg-btn">歌曲行星</button>
+        </div>
+        <button className="filter on" onClick={() => setTab("playlist")}>
+          {galaxy.tracks.length ? `${galaxy.tracks.length} 首歌` : "选择歌单"}
+        </button>
+        <button className="filter" onClick={() => setTab("search")}>搜索</button>
+        <button className={quality === "high" ? "filter on" : "filter"} onClick={toggleQuality} title="切换星云画质">
+          {quality === "high" ? "画质·高" : "画质·低"}
+        </button>
+        <div className="stat">{loading ? "同步中..." : `${galaxy.artists.length} 位歌手`}</div>
+      </div>
+
+      <div className={collapsed ? "search music-search collapsed" : "search music-search"}>
+        <div className="search-tabs">
+          <button className={tab === "login" ? "stab on" : "stab"} onClick={() => { setTab("login"); setCollapsed(false); }}>
+            {tabTitle}
+          </button>
+          <button className={tab === "playlist" ? "stab on" : "stab"} onClick={() => { setTab("playlist"); setCollapsed(false); }}>
+            歌单
+          </button>
+          <button className={tab === "search" ? "stab on" : "stab"} onClick={() => { setTab("search"); setCollapsed(false); }}>
+            搜索
+          </button>
+          <button className="stab collapse" onClick={() => setCollapsed((value) => !value)}>
+            {collapsed ? "展开" : "收起"}
+          </button>
+        </div>
+
+        {!collapsed && tab === "login" && (
+          <div className="line-results">
+            <div className="lr-section">
+              {profile ? (
+                <div className="music-account-row">
+                  <img src={profile.avatarUrl} alt="" />
+                  <span>
+                    <strong>{profile.nickname}</strong>
+                    <small>已登录网易云音乐</small>
+                  </span>
+                  <button className="music-logout-btn" type="button" onClick={logout}>退出</button>
+                </div>
+              ) : (
+                <div className="music-login-box">
+                  {qr ? <img className="music-qr" src={qr.qrImg} alt="网易云扫码登录二维码" /> : null}
+                  <button className="locate-btn real" type="button" onClick={startQr}>
+                    {qr ? "刷新二维码" : "生成扫码登录"}
+                  </button>
+                  <div className="half-note">{loginText}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!collapsed && tab === "playlist" && (
+          <div className="search-results music-result-list">
+            {playlists.map((playlist) => (
+              <button
+                key={playlist.id}
+                className={selectedPlaylist === playlist.id ? "search-row on" : "search-row"}
+                type="button"
+                onClick={() => void loadPlaylist(playlist)}
+              >
+                <span className="sr-name">{playlist.name}</span>
+                <span className="sr-meta">{playlist.trackCount} 首</span>
+              </button>
+            ))}
+            {!playlists.length && <div className="half-note">登录后这里会出现你的网易云歌单。</div>}
+          </div>
+        )}
+
+        {!collapsed && tab === "search" && (
+          <>
+            <form className="music-search-form" onSubmit={runSearch}>
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索歌曲或歌手，回车播放第一批结果" />
+            </form>
+            {searchResults.length > 0 && (
+              <div className="search-results music-result-list">
+                {searchResults.map((track) => (
+                  <button key={track.id} className="search-row" type="button" onClick={() => playTrack(track, searchResults)}>
+                    <span className="sr-name">{track.name}</span>
+                    <span className="sr-meta">{track.artistName}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {(panelTrack || selectedArtist) && (
+        <div className="poet-panel music-detail-panel">
+          <button className="panel-close" onClick={() => { onSelectedTrack(null); onSelectedArtist(null); }} aria-label="关闭">×</button>
+          {panelTrack ? (
+            <>
+              <div className="poet-head">
+                <span className="poet-name">{panelTrack.name}</span>
+                <span className="poet-sub">{panelTrack.artistName} · {panelTrack.albumName}</span>
+              </div>
+              <div className="music-cover-row">
+                {panelTrack.albumCover ? <img src={panelTrack.albumCover} alt="" /> : <div />}
+                <button className="locate-btn real" onClick={() => playTrack(panelTrack, player.playback.queue.length ? player.playback.queue : galaxy.tracks)}>
+                  {player.playback.isPlaying ? "正在播放" : "播放这首"}
+                </button>
+              </div>
+              <div className="music-lyrics">
+                {player.playback.lyric.length ? (
+                  player.playback.lyric.map((line, index) => (
+                    <p
+                      key={`${line.time}-${line.text}`}
+                      ref={(node) => {
+                        lyricLineRefs.current[index] = node;
+                      }}
+                      className={index === activeLine ? "active" : ""}
+                    >
+                      {line.text}
+                    </p>
+                  ))
+                ) : (
+                  <div className="half-note">播放后显示歌词；无歌词时保持为空状态。</div>
+                )}
+              </div>
+            </>
+          ) : selectedArtist ? (
+            <>
+              <div className="poet-head">
+                <span className="poet-name">{selectedArtist.name}</span>
+                <span className="poet-sub">{artistTracks.length} 首歌围绕这颗主星运行</span>
+              </div>
+              <div className="poem-list music-artist-tracks">
+                {artistTracks.map((track) => (
+                  <button key={track.id} className="search-row" type="button" onClick={() => playTrack(track, galaxy.tracks)}>
+                    <span className="sr-name">{track.name}</span>
+                    <span className="sr-meta">{track.albumName}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
+
+      {notice && <div className="music-toast">{notice}</div>}
+
+      <div className="hud-bottom music-player">
+        <span className="hint music-now">
+          <b>{nowTrack?.name ?? "未选择歌曲"}</b>
+          <span>{player.error || nowTrack?.artistName || "点击歌曲行星开始播放"}</span>
+        </span>
+        <span className="speed music-transport">
+          <button onClick={player.previous}>上一首</button>
+          <button onClick={player.toggle}>{player.playback.isPlaying ? "暂停" : "播放"}</button>
+          <button onClick={player.next}>下一首</button>
+          <span>{formatTime(player.playback.progress)}</span>
+          <input
+            type="range"
+            min="0"
+            max={duration}
+            step="0.1"
+            value={Math.min(player.playback.progress, duration)}
+            onChange={(event) => player.seek(Number(event.target.value))}
+          />
+          <span>{nowTrack ? formatTime(duration) : "00:00"}</span>
+          <input
+            className="music-volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={player.playback.volume}
+            onChange={(event) => player.setVolume(Number(event.target.value))}
+            aria-label="音量"
+          />
+        </span>
+      </div>
+    </>
+  );
+}

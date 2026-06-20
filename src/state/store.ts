@@ -1,0 +1,272 @@
+import { create } from "zustand";
+import type { PulledPoem, PullForm } from "../engine/engineApi";
+import type { PoetRow, PoemRecord } from "../data/load";
+import { DYNASTIES } from "../data/dynasties";
+import { WEAK } from "../three/detectQuality";
+import { listShiyi, addShiyi, removeShiyi, type ShiyiEntry } from "./shiyi";
+
+export interface Pull {
+  id: number; // stable identity so PulledStars can track per-marker birth/death animation
+  pos: [number, number, number];
+  valid: boolean;
+}
+
+interface State {
+  // data
+  loaded: boolean;
+  // form + mode
+  form: PullForm;
+  lushiFilter: boolean;
+  commonOnly: boolean;
+  // dynasty filter
+  hidden: Set<string>;
+  // void pull (random poem)
+  selected: PulledPoem | null;
+  pulls: Pull[];
+  // poets
+  hoverPoetId: string | null;
+  hoverPoem: { title: string; x: number; y: number } | null; // 诗名指引: hovered planet's title near cursor
+  selectedPoet: PoetRow | null;
+  poetPoems: PoemRecord[] | null;
+  // poetId whose poem fetch FAILED (network) — PoetPanel turns the eternal 载入作品… into an error + 重试
+  poetPoemsError: string | null;
+  // 大诗人切片首访下载进度(received/total 字节,带 id 防串台);PoetPanel 在载入态显示百分比/进度条。
+  poetPoemsProgress: { id: string; received: number; total: number } | null;
+  poetFocus: { poemIdx: number; title: string; firstLine: string } | null; // poem to surface (诗句 search)
+  // 赠诗 network
+  showGifts: boolean;
+  // 行星指引线 settings (the 指引 line射向选中诗人的每首诗):
+  //   mode     = off(不显示) / flash(点一下闪现 guideSeconds 秒) / hold(常驻,直到换人/关闭)
+  //   coverage = all(每首诗都连线,一首不漏) / optimized(数量大时跨全段采样,见 PoemGuides)
+  //   seconds  = flash 模式每次显示的时长
+  guideMode: "off" | "flash" | "hold";
+  guideCoverage: "all" | "optimized";
+  guideSeconds: number;
+  guideBrightness: number; // 指引线亮度倍率 (default lower; adjustable 0.2..2.0)
+  // 指引线样式: plane(平面坐标式 — 散射→直射两段折线 + 赤道参考环, 默认) / line(直线·旧版 — 赠诗式直射光束)
+  guideStyle: "plane" | "line";
+  // 诗云设置菜单 (收容 指引 / 行星 / 赠诗 / 引力) open
+  settingsOpen: boolean;
+  // poem "planets": when ON, every poet shows ALL their poems as orbiting planets (高性能);
+  // when OFF, only the selected poet's poems orbit (on-demand 彩蛋). Like 赠诗, a visual toggle.
+  showAllPoems: boolean;
+  // render quality (scales galaxy particle counts + bloom for weak GPUs)
+  quality: "high" | "low";
+  // hide ALL overlay UI (screenshot mode) — toggled by a corner button + the H hotkey
+  uiHidden: boolean;
+  // 留影(cinema): freeze ALL auto-animation (galaxy spin, void-pull lifecycle, highlight fades) and
+  // show a framed share card over the still scene to guide a clean screenshot. cinemaCopy = which tagline.
+  cinema: boolean;
+  cinemaCopy: number;
+  // explicit 留影 target: which of the selected poet's poems (ORIGINAL index) to frame, chosen via a
+  // per-poem 留影 button in PoetPanel. null = fall back to the void pull / 搜的这首 focus poem. Reset to
+  // null whenever cinema closes or the selected poet changes, so a stale target never leaks.
+  cinemaPoemIdx: number | null;
+  // owner-only feedback viewer (opened by a hidden gesture: 5 taps on the 诗云 logo within 10 s)
+  feedbackOpen: boolean;
+  // 拾遗: VOID-poem keepsakes (newest first), persisted to localStorage by the PURE state/shiyi.ts module.
+  // A standalone slice — NO existing action (selectPoem/selectPoet/clearPoet/…) touches it: a kept poem
+  // survives every selection change, so it deliberately sits OUTSIDE the cross-domain reset discipline.
+  shiyi: ShiyiEntry[];
+  shiyiOpen: boolean; // the revisit panel (opened from 更多)
+  // 赠诗漫游 (gift-network roaming): a breadcrumb of poets you've HOPPED through along 赠诗 edges.
+  // trail[last] = the current poet; consecutive nodes are drawn as persistent "return lines" (GiftTrail).
+  // Capped at 11 nodes (= 10 return edges). Reset to [poet] on a NORMAL selectPoet (= 点无关诗人清除);
+  // grown by hopToPoet; cleared on 赠诗 off / manual clear.
+  giftTrail: string[];
+  // pathfinding between two poets over the 赠诗 graph
+  pathStart: string | null;
+  pathEnd: string | null;
+  pathResult: string[] | null; // BFS poet-id path (incl. endpoints), [] = searched but none within range
+  pathDimEgo: boolean; // 路径查找时弱化(变暗)个体往来线,突出 path 本身
+  giftHoverId: string | null; // 悬停高亮的赠诗往来线(对方 poetId) — easier to click (item 6)
+  // camera
+  gravity: boolean; // when inside the galaxy, co-rotate the camera with the spin (stars hold still)
+  speed: number; // multiplier
+  flyTarget: [number, number, number] | null;
+  // camera lock: keep a selected poet (or one of its poems) centred + followed until a movement key
+  // / drag releases it. lockPoemIdx null = lock the poet star; a number = lock that orbiting planet.
+  lockPoetId: string | null;
+  lockPoemIdx: number | null;
+
+  setLoaded: (b: boolean) => void;
+  setForm: (f: PullForm) => void;
+  toggleLushi: () => void;
+  toggleCommon: () => void;
+  toggleDynasty: (key: string) => void;
+  showAllDynasties: () => void;
+  showOnly: (keys: string[]) => void;
+  selectPoem: (p: PulledPoem) => void;
+  pulseAt: (pos: [number, number, number], valid: boolean) => void; // flare a point WITHOUT changing selection
+  clearSelection: () => void;
+  setHover: (id: string | null) => void;
+  setHoverPoem: (h: { title: string; x: number; y: number } | null) => void;
+  selectPoet: (p: PoetRow, focus?: { poemIdx: number; title: string; firstLine: string } | null) => void;
+  setPoetPoems: (id: string, poems: PoemRecord[]) => void;
+  setPoetPoemsError: (id: string | null) => void;
+  setPoetPoemsProgress: (p: { id: string; received: number; total: number } | null) => void;
+  clearPoet: () => void;
+  hopToPoet: (p: PoetRow) => void; // travel along a 赠诗 edge: select + lock + APPEND to the trail (or
+  //   trim back to it if already on the trail). Backed by GiftTrail's persistent return lines.
+  clearTrail: () => void;
+  setPath: (start: string | null, end: string | null, result: string[] | null) => void;
+  toggleGifts: () => void;
+  setGuideMode: (m: "off" | "flash" | "hold") => void;
+  setGuideCoverage: (c: "all" | "optimized") => void;
+  setGuideSeconds: (n: number) => void;
+  setGuideBrightness: (n: number) => void;
+  setGuideStyle: (s: "plane" | "line") => void;
+  resetGuide: () => void;
+  toggleSettings: () => void;
+  togglePathDimEgo: () => void;
+  setGiftHover: (id: string | null) => void;
+  toggleAllPoems: () => void;
+  toggleQuality: () => void;
+  toggleGravity: () => void;
+  toggleUI: () => void;
+  toggleCinema: () => void;
+  openCinemaFor: (poemIdx: number) => void; // open 留影 framing a SPECIFIC poem (its ORIGINAL index)
+  setCinemaCopy: (n: number) => void;
+  setFeedbackOpen: (b: boolean) => void;
+  setShiyiOpen: (b: boolean) => void;
+  keepShiyi: (entry: { index: string; preview: string }) => void; // 收进拾遗 (a void poem)
+  dropShiyi: (index: string) => void; // 从拾遗移除
+  setSpeed: (s: number) => void;
+  setFlyTarget: (t: [number, number, number] | null) => void;
+  lockPoet: (id: string) => void;
+  lockPoem: (poetId: string, poemIdx: number) => void;
+  unlock: () => void;
+}
+
+const MAX_PULLS = 24; // small buffer; PulledStars caps the ALIVE markers at 20 + animates removal
+const ALL_KEYS = DYNASTIES.map((d) => d.key);
+let _pullSeq = 0;
+
+export const useStore = create<State>((set) => ({
+  loaded: false,
+  form: "wujue",
+  lushiFilter: false,
+  commonOnly: false,
+  hidden: new Set(),
+  selected: null,
+  pulls: [],
+  hoverPoetId: null,
+  hoverPoem: null,
+  selectedPoet: null,
+  poetPoems: null,
+  poetPoemsError: null,
+  poetPoemsProgress: null,
+  poetFocus: null,
+  showGifts: false,
+  guideMode: "flash",
+  guideCoverage: "optimized",
+  guideSeconds: 10,
+  guideBrightness: 0.7,
+  guideStyle: "plane",
+  settingsOpen: false,
+  giftTrail: [],
+  pathStart: null,
+  pathEnd: null,
+  pathResult: null,
+  pathDimEgo: false,
+  giftHoverId: null,
+  showAllPoems: false,
+  // weak / mobile GPUs default to 画质·低 (auto-detected once at module load); the user can still force
+  // 画质·高 via the HUD toggle. See three/detectQuality.ts.
+  quality: WEAK ? "low" : "high",
+  uiHidden: false,
+  cinema: false,
+  cinemaCopy: 0,
+  cinemaPoemIdx: null,
+  feedbackOpen: false,
+  shiyi: listShiyi(), // hydrate the keepsake list from localStorage at boot
+  shiyiOpen: false,
+  gravity: true,
+  speed: 1,
+  flyTarget: null,
+  lockPoetId: null,
+  lockPoemIdx: null,
+
+  setLoaded: (loaded) => set({ loaded }),
+  setForm: (form) => set({ form }),
+  toggleLushi: () => set((s) => ({ lushiFilter: !s.lushiFilter })),
+  toggleCommon: () => set((s) => ({ commonOnly: !s.commonOnly })),
+  toggleDynasty: (key) =>
+    set((s) => {
+      const hidden = new Set(s.hidden);
+      hidden.has(key) ? hidden.delete(key) : hidden.add(key);
+      return { hidden };
+    }),
+  showAllDynasties: () => set({ hidden: new Set() }),
+  showOnly: (keys) => set({ hidden: new Set(ALL_KEYS.filter((k) => !keys.includes(k))) }),
+  selectPoem: (p) =>
+    set((s) => ({
+      selected: p,
+      selectedPoet: null,
+      poetPoems: null,
+      poetFocus: null,
+      cinemaPoemIdx: null, // the explicit 留影 target belonged to the old poet — drop it
+      lockPoetId: null, // a void pull releases any poet/planet lock
+      lockPoemIdx: null,
+      pulls: [...s.pulls, { id: _pullSeq++, pos: p.pos, valid: p.valid }].slice(-MAX_PULLS),
+    })),
+  pulseAt: (pos, valid) =>
+    set((s) => ({ pulls: [...s.pulls, { id: _pullSeq++, pos, valid }].slice(-MAX_PULLS) })),
+  clearSelection: () => set({ selected: null }),
+  setHover: (hoverPoetId) => set({ hoverPoetId }),
+  setHoverPoem: (hoverPoem) => set({ hoverPoem }),
+  selectPoet: (selectedPoet, focus = null) =>
+    // a NORMAL selection (3D star / search / planet) starts a FRESH trail at this poet (点无关诗人清除)
+    set({ selectedPoet, poetPoems: null, poetPoemsError: null, poetPoemsProgress: null, poetFocus: focus, selected: null, cinemaPoemIdx: null, giftTrail: [selectedPoet.id] }),
+  setPoetPoems: (id, poems) =>
+    set((s) => (s.selectedPoet?.id === id ? { poetPoems: poems, poetPoemsError: null, poetPoemsProgress: null } : {})),
+  setPoetPoemsError: (id) =>
+    set((s) => (id === null || s.selectedPoet?.id === id ? { poetPoemsError: id } : {})),
+  // progress carries its own poetId → ignore late ticks from a previous poet's in-flight download.
+  setPoetPoemsProgress: (p) =>
+    set((s) => (p === null || s.selectedPoet?.id === p.id ? { poetPoemsProgress: p } : {})),
+  clearPoet: () => set({ selectedPoet: null, poetPoems: null, poetPoemsError: null, poetPoemsProgress: null, poetFocus: null, cinemaPoemIdx: null, lockPoetId: null, lockPoemIdx: null, giftTrail: [], hoverPoem: null }),
+  hopToPoet: (poet) =>
+    set((s) => {
+      const id = poet.id;
+      const i = s.giftTrail.indexOf(id);
+      // already on the trail → trim back to it (返回); else append, capping at 11 nodes (= 10 return lines)
+      const giftTrail = i >= 0 ? s.giftTrail.slice(0, i + 1) : [...s.giftTrail, id].slice(-11);
+      return { selectedPoet: poet, poetPoems: null, poetPoemsError: null, poetPoemsProgress: null, poetFocus: null, selected: null, cinemaPoemIdx: null, lockPoetId: id, lockPoemIdx: null, giftTrail };
+    }),
+  clearTrail: () => set((s) => ({ giftTrail: s.selectedPoet ? [s.selectedPoet.id] : [], pathResult: null })),
+  setPath: (pathStart, pathEnd, pathResult) => set({ pathStart, pathEnd, pathResult }),
+  toggleGifts: () =>
+    set((s) => (s.showGifts ? { showGifts: false, giftTrail: [], pathStart: null, pathEnd: null, pathResult: null, giftHoverId: null } : { showGifts: true })),
+  setGuideMode: (guideMode) => set({ guideMode }),
+  setGuideCoverage: (guideCoverage) => set({ guideCoverage }),
+  setGuideSeconds: (guideSeconds) => set({ guideSeconds }),
+  setGuideBrightness: (guideBrightness) => set({ guideBrightness }),
+  setGuideStyle: (guideStyle) => set({ guideStyle }),
+  resetGuide: () => set({ guideMode: "flash", guideCoverage: "optimized", guideSeconds: 10, guideBrightness: 0.7, guideStyle: "plane" }),
+  toggleSettings: () => set((s) => ({ settingsOpen: !s.settingsOpen })),
+  togglePathDimEgo: () => set((s) => ({ pathDimEgo: !s.pathDimEgo })),
+  setGiftHover: (giftHoverId) => set((s) => (s.giftHoverId === giftHoverId ? {} : { giftHoverId })),
+  // 行星·全部 builds ONE ~857k-point additive layer — fine on a desktop GPU, an instant freeze/OOM on a
+  // phone. On weak devices it can be turned OFF but never ON (the SettingsMenu row shows it disabled).
+  toggleAllPoems: () => set((s) => (WEAK && !s.showAllPoems ? {} : { showAllPoems: !s.showAllPoems })),
+  toggleQuality: () => set((s) => ({ quality: s.quality === "high" ? "low" : "high" })),
+  toggleGravity: () => set((s) => ({ gravity: !s.gravity })),
+  toggleUI: () => set((s) => ({ uiHidden: !s.uiHidden })),
+  // toggling cinema OFF clears the explicit per-poem target so reopening via the panel button (which
+  // frames the 搜的这首 focus poem) doesn't leak the last 留影 row's poem.
+  toggleCinema: () => set((s) => (s.cinema ? { cinema: false, cinemaPoemIdx: null } : { cinema: true })),
+  openCinemaFor: (poemIdx) => set({ cinema: true, cinemaPoemIdx: poemIdx }),
+  setCinemaCopy: (cinemaCopy) => set({ cinemaCopy }),
+  setFeedbackOpen: (feedbackOpen) => set({ feedbackOpen }),
+  // 拾遗: delegate the dedupe/cap/persistence to the pure module, then mirror its returned list into the
+  // store so subscribed UI (PoemPanel toggle, the revisit panel) re-renders. No cross-domain reset.
+  setShiyiOpen: (shiyiOpen) => set({ shiyiOpen }),
+  keepShiyi: (entry) => set({ shiyi: addShiyi(entry) }),
+  dropShiyi: (index) => set({ shiyi: removeShiyi(index) }),
+  setSpeed: (speed) => set({ speed }),
+  setFlyTarget: (flyTarget) => set({ flyTarget }),
+  lockPoet: (id) => set({ lockPoetId: id, lockPoemIdx: null }),
+  lockPoem: (id, poemIdx) => set({ lockPoetId: id, lockPoemIdx: poemIdx }),
+  unlock: () => set({ lockPoetId: null, lockPoemIdx: null }),
+}));

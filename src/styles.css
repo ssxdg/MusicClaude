@@ -1,0 +1,3058 @@
+:root {
+  --ink: #04050a;
+  --gold: #ffd27a;
+  --gold-soft: #f6dca6;
+  --fg: #e8ecf4;
+  --muted: #8b93a7;
+  /* elegant 楷/宋 stack for poem text (product-grade typography) */
+  --serif: "Kaiti SC", "STKaiti", KaiTi, "楷体", "Source Han Serif SC", "Noto Serif SC",
+    "Songti SC", STSong, SimSun, serif;
+  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+}
+
+/* Music Cloud MVP layer. The base canvas, galaxy particles, and fly controls are inherited from shiyun. */
+.music-cloud-app {
+  color: #f7f4ed;
+}
+
+.mc-topbar,
+.mc-left,
+.mc-right,
+.mc-player,
+.mc-empty,
+.mc-notice {
+  position: fixed;
+  z-index: 20;
+}
+
+.mc-topbar {
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(7, 10, 18, 0.68);
+  backdrop-filter: blur(18px);
+}
+
+.mc-topbar strong {
+  display: block;
+  font-size: 19px;
+  letter-spacing: 0;
+}
+
+.mc-topbar span,
+.mc-status,
+.mc-muted,
+.mc-list small,
+.mc-now small {
+  color: rgba(247, 244, 237, 0.62);
+  font-size: 12px;
+}
+
+.mc-status {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(98, 243, 198, 0.08);
+  color: #62f3c6;
+}
+
+.mc-left,
+.mc-right {
+  top: 92px;
+  bottom: 104px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(320px, calc(100vw - 36px));
+}
+
+.mc-left {
+  left: 18px;
+}
+
+.mc-right {
+  right: 18px;
+}
+
+.mc-card {
+  min-height: 0;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(10, 13, 23, 0.72);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.mc-card.grow,
+.lyric-card {
+  flex: 1;
+}
+
+.mc-card-title {
+  margin-bottom: 10px;
+  color: #f5d56a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mc-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mc-account img,
+.mc-now img,
+.mc-now > div {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.mc-now > div {
+  background: linear-gradient(135deg, rgba(98, 243, 198, 0.34), rgba(255, 127, 154, 0.22));
+}
+
+.mc-account span,
+.mc-now span,
+.mc-list span {
+  min-width: 0;
+}
+
+.mc-account strong,
+.mc-now strong,
+.mc-list strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mc-account button,
+.mc-login button,
+.mc-search button,
+.mc-list button,
+.mc-controls button {
+  border: 0;
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.mc-account button {
+  margin-top: 6px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(247, 244, 237, 0.76);
+}
+
+.mc-login {
+  display: grid;
+  gap: 10px;
+}
+
+.mc-login button,
+.mc-search button,
+.mc-controls button {
+  min-height: 36px;
+  padding: 0 12px;
+  background: #62f3c6;
+  color: #07100d;
+  font-weight: 800;
+}
+
+.mc-login p {
+  margin: 0;
+  color: rgba(247, 244, 237, 0.68);
+  font-size: 12px;
+}
+
+.mc-qr {
+  justify-self: center;
+  width: 178px;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.mc-search {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.mc-search input {
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  outline: 0;
+  background: rgba(0, 0, 0, 0.24);
+  color: #f7f4ed;
+  font: inherit;
+}
+
+.mc-list,
+.mc-lyrics {
+  display: grid;
+  gap: 7px;
+  max-height: 100%;
+  overflow: auto;
+}
+
+.mc-list.compact {
+  max-height: 190px;
+  margin-top: 10px;
+}
+
+.mc-list button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  background: transparent;
+  text-align: left;
+}
+
+.mc-list button:hover,
+.mc-list button.active {
+  background: rgba(98, 243, 198, 0.1);
+}
+
+.mc-list img {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 7px;
+  object-fit: cover;
+}
+
+.mc-lyrics {
+  height: calc(100% - 28px);
+  align-content: start;
+}
+
+.mc-lyrics p {
+  margin: 0;
+  padding: 7px 0;
+  color: rgba(247, 244, 237, 0.52);
+  line-height: 1.55;
+}
+
+.mc-lyrics p.active {
+  color: #62f3c6;
+  font-weight: 800;
+}
+
+.mc-player {
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(320px, 1.4fr) minmax(140px, 0.4fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 74px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(7, 10, 18, 0.78);
+  backdrop-filter: blur(18px);
+}
+
+.mc-now {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mc-controls {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mc-controls label {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 44px minmax(160px, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  color: rgba(247, 244, 237, 0.62);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-controls input,
+.mc-volume input {
+  width: 100%;
+  accent-color: #62f3c6;
+}
+
+.mc-volume {
+  display: grid;
+  gap: 6px;
+  color: rgba(247, 244, 237, 0.62);
+  font-size: 12px;
+}
+
+.mc-empty {
+  top: 50%;
+  left: 50%;
+  display: grid;
+  gap: 8px;
+  width: min(360px, calc(100vw - 40px));
+  padding: 16px 18px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(7, 10, 18, 0.7);
+  color: rgba(247, 244, 237, 0.68);
+  text-align: center;
+  backdrop-filter: blur(14px);
+  pointer-events: none;
+}
+
+.mc-empty strong {
+  color: #f7f4ed;
+  font-size: 22px;
+}
+
+.mc-notice {
+  left: 50%;
+  bottom: 108px;
+  width: min(520px, calc(100vw - 36px));
+  padding: 11px 13px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 127, 154, 0.32);
+  border-radius: 8px;
+  background: rgba(45, 12, 22, 0.84);
+  color: #ffd8df;
+  text-align: center;
+}
+
+.music-star-label {
+  max-width: 120px;
+  overflow: hidden;
+  padding: 3px 7px;
+  border: 1px solid rgba(245, 213, 106, 0.26);
+  border-radius: 8px;
+  background: rgba(7, 10, 18, 0.66);
+  color: #f5d56a;
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1080px) {
+  .mc-left,
+  .mc-right {
+    position: static;
+    width: auto;
+  }
+
+  .music-cloud-app {
+    min-height: 100vh;
+    padding: 88px 12px 104px;
+    overflow: auto;
+  }
+
+  .music-cloud-app canvas {
+    position: fixed !important;
+    inset: 0;
+  }
+
+  .mc-topbar,
+  .mc-player {
+    left: 12px;
+    right: 12px;
+  }
+
+  .mc-player {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .mc-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mc-controls {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: var(--ink);
+  color: var(--fg);
+  overflow: hidden;
+  /* kill pull-to-refresh / overscroll glow so a downward swipe over the galaxy doesn't reload the app */
+  overscroll-behavior: none;
+}
+.app {
+  position: fixed;
+  inset: 0;
+}
+canvas {
+  display: block;
+  /* the OS crosshair cursor sits at the actual click/aim point — no separate centre sprite (that
+     conflicted with the real cursor; picking happens at the cursor, not screen centre). */
+  cursor: crosshair;
+  /* touch: the browser must NOT treat finger drags over the GL surface as scroll/zoom/pull-to-refresh,
+     or it fires pointercancel mid-gesture before look/fly ever runs. Panels keep the default (auto) so
+     their lists still scroll. This is THE prerequisite for all touch input (FlyControls). */
+  touch-action: none;
+}
+
+/* floating poet labels (drei Html) */
+.poet-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 1), 0 0 2px rgba(0, 0, 0, 1);
+  opacity: 0.5;
+  user-select: none;
+  transform: translateY(-10px);
+}
+.poet-label.focus {
+  font-size: 15px;
+  opacity: 1;
+  font-weight: 600;
+}
+
+/* HUD */
+.hud-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 20px;
+  pointer-events: none;
+  z-index: 20;
+}
+.hud-top > * {
+  pointer-events: auto;
+}
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--gold);
+}
+.title-en {
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: var(--muted);
+  margin-left: 6px;
+}
+.seg {
+  display: flex;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.seg-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 6px 13px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.seg-btn.on {
+  background: rgba(255, 210, 122, 0.16);
+  color: var(--gold);
+}
+.filter {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--muted);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.filter.on {
+  border-color: rgba(255, 210, 122, 0.5);
+  color: var(--gold);
+  background: rgba(255, 210, 122, 0.1);
+}
+
+.hud-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  font-size: 12px;
+  color: var(--muted);
+  pointer-events: none;
+  z-index: 20;
+}
+.hint b {
+  color: var(--gold);
+  font-weight: 600;
+}
+.pull-count {
+  color: var(--fg);
+}
+
+/* dynasty legend / filter */
+.legend {
+  position: fixed;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  background: rgba(8, 10, 18, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 12px 10px;
+  width: 132px;
+}
+.legend-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.legend-head > span {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+}
+.legend-presets {
+  display: flex;
+  gap: 4px;
+}
+.legend-presets button {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 3px 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.legend-presets button:hover {
+  color: var(--fg);
+}
+.legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--fg);
+  font-size: 13px;
+  text-align: left;
+}
+/* 五代十国 — empty shell by data design (its poets live under 唐); informational, not clickable */
+.legend-row.note {
+  cursor: default;
+  color: var(--muted);
+}
+.legend-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+/* .note row isn't a button — no hover affordance */
+.legend-row.note:hover {
+  background: none;
+}
+.legend-row.off {
+  opacity: 0.32;
+}
+.legend-row.off .legend-label {
+  text-decoration: line-through;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* poem panel */
+.poem-panel {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 340px;
+  max-height: 82vh;
+  overflow: auto;
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(255, 210, 122, 0.07), transparent 60%),
+    linear-gradient(180deg, rgba(14, 16, 26, 0.94), rgba(7, 8, 15, 0.92));
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 210, 122, 0.18);
+  border-radius: 16px;
+  padding: 26px 24px 22px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  animation: rise 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+  z-index: 25;
+}
+.poem-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 22%;
+  right: 22%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.55;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-50% + 14px));
+  }
+}
+.panel-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+}
+.poem-body {
+  font-family: var(--serif);
+  font-size: 25px;
+  line-height: 2.05;
+  letter-spacing: 0.18em;
+  text-align: center;
+  margin: 4px 0 20px;
+  color: #f6f2e6;
+  text-shadow: 0 1px 18px rgba(255, 210, 122, 0.12);
+}
+.poem-line {
+  white-space: nowrap;
+  position: relative;
+}
+/* 自由格式 / 词 — variable, often long lines must WRAP, not clip off the panel edge */
+.poem-line.wrap {
+  white-space: normal;
+  word-break: break-word;
+  letter-spacing: 0.1em;
+  line-height: 1.75;
+}
+/* a faint gold rule under the poem, like an ink underscore */
+.poem-body::after {
+  content: "";
+  display: block;
+  width: 38px;
+  height: 1px;
+  margin: 14px auto 0;
+  background: linear-gradient(90deg, transparent, var(--gold-soft), transparent);
+  opacity: 0.5;
+}
+.poem-meta {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.meta-k {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+.meta-v {
+  font-size: 13px;
+  color: var(--fg);
+}
+.meta-v.idx {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  word-break: break-all;
+  color: #b9c2d6;
+  max-height: 4.6em;
+  overflow: auto;
+}
+.meta-v.lushi {
+  color: var(--gold);
+}
+.seal {
+  display: inline-block;
+  background: var(--gold);
+  color: #1a1206;
+  font-size: 10px;
+  padding: 0 4px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: 1px;
+}
+.meta-v.muted {
+  color: var(--muted);
+}
+.meta-row.col .meta-k {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.meta-sub {
+  font-size: 10px;
+  color: var(--muted);
+}
+.meta-v.idx.full {
+  max-height: none;
+  color: var(--gold);
+}
+.pi-idx.hit-idx {
+  color: var(--gold);
+}
+.pi-idx-head {
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+.pi-idx-full {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--gold);
+  word-break: break-all;
+}
+.poem-foot {
+  margin-top: 16px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* HUD additions */
+.stat {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.speed {
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* search */
+.search {
+  position: fixed;
+  top: 64px;
+  left: 20px; /* docked left so it never covers the crosshair / 定位 at screen centre */
+  z-index: 22;
+  width: min(384px, calc(100vw - 36px)); /* wider so content fills it; never overflow → no h-scroll */
+  max-width: calc(100vw - 36px);
+}
+.search-results,
+.line-results {
+  overflow-x: hidden; /* long 编号 / poem lines wrap instead of scrolling sideways */
+}
+.search input {
+  width: 100%;
+  background: rgba(8, 10, 18, 0.72);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 9px 14px;
+  color: var(--fg);
+  font-size: 14px;
+  outline: none;
+}
+.search input:focus {
+  border-color: rgba(255, 210, 122, 0.5);
+}
+/* alias redirect (「陶渊明」即「陶潜」) / graceful-miss explanation under the poet search input */
+.search-note {
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: rgba(255, 210, 122, 0.08);
+  border: 1px solid rgba(255, 210, 122, 0.25);
+  border-radius: 8px;
+  color: var(--gold-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.search-note.miss {
+  background: rgba(8, 10, 18, 0.92);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--muted);
+}
+.search-results {
+  margin-top: 6px;
+  background: rgba(8, 10, 18, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  max-height: 50vh;
+  overflow: auto;
+}
+.search-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 8px 14px;
+  cursor: pointer;
+  text-align: left;
+}
+.search-row:hover {
+  background: rgba(255, 210, 122, 0.1);
+}
+.sr-name {
+  color: var(--fg);
+  font-size: 14px;
+}
+.sr-title {
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: 4px;
+}
+.sr-meta {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* search tabs (诗人 / 诗句) */
+.search-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.stab {
+  flex: 1;
+  text-align: center;
+  white-space: nowrap; /* keep 造诗/朝代 on one line — they were wrapping in the narrow panel */
+  background: rgba(8, 10, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 5px 4px;
+  cursor: pointer;
+}
+.stab.on {
+  color: var(--ink);
+  background: var(--gold);
+  border-color: var(--gold);
+  font-weight: 600;
+}
+.search-row:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* 诗句 content-search results + 半编号 */
+.line-results {
+  margin-top: 6px;
+  background: rgba(8, 10, 18, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  max-height: 56vh;
+  overflow: auto;
+}
+.lr-section {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px 0;
+}
+.lr-section:last-child {
+  border-bottom: none;
+}
+.lr-head {
+  font-size: 11px;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  padding: 4px 14px;
+}
+.half-note {
+  font-size: 11px;
+  color: #b9c1d4;
+  padding: 2px 14px;
+  line-height: 1.5;
+}
+.half-note.dim {
+  color: var(--muted);
+}
+/* 自由填诗:输入了字库外的字时的提示(与网格模式的 .cell.bad 同一告警色) */
+.make-bad {
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 6px 14px;
+  color: #ff8a8a;
+}
+.half-idx {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  color: var(--gold);
+  padding: 4px 14px;
+  word-break: break-all;
+}
+.half-idx.full {
+  max-height: 6.5em;
+  overflow: auto;
+  line-height: 1.45;
+}
+
+/* copy button (long 编号) */
+.copy-btn {
+  background: rgba(255, 210, 122, 0.12);
+  border: 1px solid rgba(255, 210, 122, 0.4);
+  border-radius: 5px;
+  color: var(--gold);
+  font-size: 10px;
+  padding: 1px 7px;
+  margin-left: 8px;
+  cursor: pointer;
+  vertical-align: middle;
+  white-space: nowrap; /* never fold "复制编号" to two lines */
+}
+.copy-btn:hover {
+  background: rgba(255, 210, 122, 0.22);
+}
+.copy-btn.share {
+  background: rgba(130, 180, 255, 0.14);
+  border-color: rgba(130, 180, 255, 0.42);
+  color: #bcd4ff;
+  /* same size as .cinema-btn so 分享 / 留影 sit as a uniform pair */
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+.copy-btn.share:hover {
+  background: rgba(130, 180, 255, 0.24);
+}
+.poem-share {
+  margin-top: 12px;
+  text-align: center;
+}
+.rev-real {
+  font-size: 12px;
+  color: var(--gold);
+  background: rgba(255, 210, 122, 0.1);
+  border: 1px solid rgba(255, 210, 122, 0.3);
+  border-radius: 7px;
+  padding: 6px 10px;
+  margin: 6px 14px 2px;
+  line-height: 1.55;
+}
+
+/* 编号反查 tab */
+.rev-forms {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding: 4px 14px 6px;
+}
+.rev-forms .seg-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 3px 12px;
+  cursor: pointer;
+}
+.rev-forms .seg-btn.on {
+  color: var(--ink);
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.idx-input {
+  width: calc(100% - 28px);
+  margin: 4px 14px;
+  background: rgba(8, 10, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--fg);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  resize: vertical;
+  outline: none;
+  word-break: break-all;
+}
+.idx-input:focus {
+  border-color: rgba(255, 210, 122, 0.5);
+}
+.rev-poem {
+  padding: 4px 14px 8px;
+}
+.rev-poem .poem-body {
+  font-family: var(--serif);
+  font-size: 21px;
+  line-height: 1.95;
+  letter-spacing: 0.14em;
+  text-align: center;
+  color: #f6f2e6;
+  margin-bottom: 8px;
+  text-shadow: 0 1px 14px rgba(255, 210, 122, 0.12);
+}
+
+/* 定位虚空 — fly to a known index's fixed point in the void and light its star */
+.locate-btn {
+  display: block;
+  width: calc(100% - 28px);
+  margin: 8px 14px 4px;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, rgba(255, 210, 122, 0.16), rgba(255, 210, 122, 0.07));
+  border: 1px solid rgba(255, 210, 122, 0.42);
+  border-radius: 8px;
+  color: var(--gold);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.locate-btn:hover {
+  background: linear-gradient(180deg, rgba(255, 210, 122, 0.26), rgba(255, 210, 122, 0.12));
+  border-color: rgba(255, 210, 122, 0.7);
+}
+/* real-poem locate (item 1): flies to the poet's ACTUAL orbiting planet, not the void — tinted cyan */
+.locate-btn.real {
+  background: linear-gradient(180deg, rgba(127, 209, 255, 0.18), rgba(127, 209, 255, 0.08));
+  border-color: rgba(127, 209, 255, 0.5);
+  color: #aee3ff;
+}
+.locate-btn.real:hover {
+  background: linear-gradient(180deg, rgba(127, 209, 255, 0.28), rgba(127, 209, 255, 0.13));
+  border-color: rgba(127, 209, 255, 0.75);
+}
+
+/* poet panel */
+.poet-panel {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 348px;
+  max-height: 84vh;
+  overflow: auto;
+  background:
+    radial-gradient(120% 50% at 50% 0%, rgba(255, 210, 122, 0.06), transparent 60%),
+    linear-gradient(180deg, rgba(14, 16, 26, 0.95), rgba(7, 8, 15, 0.93));
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 210, 122, 0.16);
+  border-radius: 16px;
+  padding: 24px 22px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  z-index: 25;
+  animation: rise 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.poet-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 12px;
+}
+.poet-name {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 16px rgba(255, 210, 122, 0.18);
+}
+.poet-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.loading-row {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 20px 0;
+  text-align: center;
+}
+.loading-row.error {
+  color: #e8a0a0;
+}
+/* 载入作品动画 — gold spinner + shimmer 骨架 + 下载进度条(大诗人切片 2MB+ 首访给出明确反馈) */
+.poems-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 210, 122, 0.18);
+  border-top-color: var(--gold);
+  box-shadow: 0 0 10px rgba(255, 210, 122, 0.25);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.loading-label {
+  color: var(--gold-soft);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+.load-progress {
+  width: 82%;
+}
+.load-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.load-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(255, 210, 122, 0.55), var(--gold));
+  box-shadow: 0 0 8px rgba(255, 210, 122, 0.45);
+  transition: width 0.25s ease-out;
+}
+.load-pct {
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.poem-skeleton {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.sk-row {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 210, 122, 0.1) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.sk-row:nth-child(2) {
+  width: 88%;
+}
+.sk-row:nth-child(3) {
+  width: 94%;
+}
+.sk-row:nth-child(4) {
+  width: 80%;
+}
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+  .sk-row {
+    animation: none;
+  }
+  .load-bar {
+    transition: none;
+  }
+}
+/* 重试 — poem-fetch / boot-data failure recovery */
+.retry-btn {
+  margin-left: 10px;
+  background: rgba(255, 210, 122, 0.12);
+  border: 1px solid rgba(255, 210, 122, 0.42);
+  border-radius: 6px;
+  color: var(--gold);
+  font-size: 12px;
+  padding: 3px 12px;
+  cursor: pointer;
+}
+.retry-btn:hover {
+  background: rgba(255, 210, 122, 0.22);
+}
+.retry-btn.big {
+  margin: 14px 0 0;
+  font-size: 14px;
+  padding: 8px 26px;
+}
+.poem-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 8px;
+}
+.poem-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.poem-item.hit {
+  background: rgba(255, 210, 122, 0.08);
+  border: 1px solid rgba(255, 210, 122, 0.32);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: -2px 0 4px;
+}
+.pi-hit {
+  /* on its OWN line under the title, so even a 1-char title (e.g. 秋) is never squeezed/truncated by it */
+  display: block;
+  width: fit-content;
+  font-size: 10px;
+  color: var(--ink);
+  background: var(--gold);
+  border-radius: 4px;
+  padding: 0 5px;
+  margin: 3px 0 0;
+}
+.pi-title {
+  font-size: 13px;
+  color: #cdd5e6;
+}
+.pi-form {
+  font-size: 10px;
+  color: var(--gold);
+  border: 1px solid rgba(255, 210, 122, 0.4);
+  border-radius: 4px;
+  padding: 0 4px;
+  margin-left: 4px;
+}
+.pi-body {
+  font-family: var(--serif);
+  font-size: 16.5px;
+  line-height: 1.85;
+  color: #f1ede2;
+  letter-spacing: 0.1em;
+}
+.pi-idx {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  color: #7f8aa3;
+  word-break: break-all;
+}
+.more {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* hide-all-UI (screenshot) button — lives in the HUD top bar (not overlapping the speed readout) */
+.ui-hide-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--muted);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ui-hide-btn:hover {
+  color: var(--gold);
+  border-color: rgba(255, 210, 122, 0.4);
+}
+
+/* search panel collapse + 造诗 compose */
+.search.collapsed {
+  width: auto;
+}
+.stab.collapse {
+  flex: none;
+  padding: 5px 11px;
+}
+.compose-grid .cell.bad {
+  border-color: rgba(255, 95, 95, 0.75);
+  color: #ff8a8a;
+  background: rgba(255, 60, 60, 0.1);
+}
+.compose-dir {
+  display: flex;
+  gap: 6px;
+  padding: 0 14px 6px;
+}
+.compose-dir .seg-btn {
+  flex: 1;
+  text-align: center;
+}
+.compose-grid {
+  display: grid;
+  gap: 5px;
+  padding: 6px 14px 4px;
+}
+.compose-grid .cell {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 18, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: #f1ede2;
+  font-family: var(--serif);
+  font-size: 18px;
+}
+.compose-grid .cell:empty {
+  background: rgba(8, 10, 18, 0.4);
+}
+.compose-text {
+  font-family: var(--serif) !important;
+  font-size: 15px !important;
+}
+
+/* poet panel — title drawer / accordion */
+.pi-row {
+  display: flex;
+  align-items: flex-start; /* long titles wrap; caret/form/copy stay top-aligned, never fold */
+  gap: 7px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 6px 2px;
+  cursor: pointer;
+  text-align: left;
+  color: #cdd5e6;
+}
+.pi-row:hover {
+  color: var(--fg);
+}
+.pi-caret {
+  color: var(--muted);
+  font-size: 10px;
+  width: 10px;
+  flex: none;
+  margin-top: 4px;
+}
+.pi-row .pi-title {
+  flex: 1;
+  min-width: 0; /* allow the title column to shrink so the badge + copy button keep their width */
+  word-break: break-word;
+  line-height: 1.45;
+  font-size: 14px;
+}
+.pi-row .pi-form {
+  flex: none;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+.pi-row .copy-btn {
+  flex: none;
+  white-space: nowrap;
+  margin-left: 0;
+}
+.pi-row .pi-locate {
+  flex: none;
+  white-space: nowrap;
+  background: rgba(130, 180, 255, 0.12);
+  border: 1px solid rgba(130, 180, 255, 0.42);
+  border-radius: 5px;
+  color: #bcd4ff;
+  font-size: 10px;
+  padding: 1px 7px;
+  cursor: pointer;
+}
+.pi-row .pi-locate:hover {
+  background: rgba(130, 180, 255, 0.24);
+}
+/* per-poem 留影 (cinema) row button — gold accent (matches .cinema-btn) so it reads as 留影, sized
+   like .pi-locate so the row's 定位 / 留影 / 复制编号 trio stays uniform. */
+.pi-row .pi-cinema {
+  flex: none;
+  white-space: nowrap;
+  background: rgba(255, 210, 122, 0.12);
+  border: 1px solid rgba(255, 210, 122, 0.42);
+  border-radius: 5px;
+  color: var(--gold);
+  font-size: 10px;
+  padding: 1px 7px;
+  cursor: pointer;
+}
+.pi-row .pi-cinema:hover {
+  background: rgba(255, 210, 122, 0.24);
+}
+.pi-detail {
+  padding: 2px 2px 8px 17px;
+  animation: rise 0.2s ease;
+}
+.pi-detail .pi-body {
+  text-align: left;
+}
+.pi-idx-block {
+  margin-top: 6px;
+}
+.pi-idx.dim {
+  color: var(--muted);
+  margin-top: 6px;
+}
+.more-btn {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 7px;
+  cursor: pointer;
+  margin-top: 6px;
+}
+.more-btn:hover {
+  color: var(--gold);
+  border-color: rgba(255, 210, 122, 0.4);
+}
+
+/* thin, on-brand scrollbars (replaces the default chrome bars) */
+.poem-list,
+.search-results,
+.line-results,
+.poet-panel,
+.poem-panel {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 210, 122, 0.32) transparent;
+}
+.poem-list::-webkit-scrollbar,
+.search-results::-webkit-scrollbar,
+.line-results::-webkit-scrollbar,
+.poet-panel::-webkit-scrollbar,
+.poem-panel::-webkit-scrollbar {
+  width: 8px;
+}
+.poem-list::-webkit-scrollbar-thumb,
+.search-results::-webkit-scrollbar-thumb,
+.line-results::-webkit-scrollbar-thumb,
+.poet-panel::-webkit-scrollbar-thumb,
+.poem-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 210, 122, 0.28);
+  border-radius: 4px;
+}
+.poet-panel::-webkit-scrollbar-thumb:hover,
+.poem-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 210, 122, 0.5);
+}
+.poem-list::-webkit-scrollbar-track,
+.line-results::-webkit-scrollbar-track,
+.poet-panel::-webkit-scrollbar-track,
+.poem-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* first-run onboarding (once per browser, skippable) */
+.onb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 3, 8, 0.55);
+  backdrop-filter: blur(3px);
+  animation: rise 0.3s ease;
+}
+.onb-card {
+  width: min(440px, 88vw);
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(255, 210, 122, 0.08), transparent 60%),
+    linear-gradient(180deg, rgba(16, 18, 28, 0.97), rgba(8, 9, 16, 0.96));
+  border: 1px solid rgba(255, 210, 122, 0.22);
+  border-radius: 18px;
+  padding: 26px 26px 20px;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+.onb-step {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+}
+.onb-title {
+  font-family: var(--serif);
+  font-size: 24px;
+  color: var(--gold);
+  margin: 8px 0 12px;
+  letter-spacing: 0.06em;
+}
+.onb-body {
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--fg);
+  text-align: left;
+}
+.onb-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin: 16px 0 14px;
+}
+.onb-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+.onb-dots span.on {
+  background: var(--gold);
+}
+.onb-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.onb-skip {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--muted);
+  padding: 8px 20px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.onb-skip:hover {
+  color: var(--fg);
+}
+.onb-next {
+  background: linear-gradient(180deg, rgba(255, 210, 122, 0.9), rgba(245, 200, 110, 0.8));
+  border: none;
+  color: #1a1206;
+  font-weight: 600;
+  padding: 8px 26px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.onb-next:hover {
+  filter: brightness(1.08);
+}
+
+/* loading screen */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #03040a;
+  z-index: 50;
+}
+.ls-title {
+  font-size: 40px;
+  letter-spacing: 0.4em;
+  color: var(--gold);
+}
+.ls-sub {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+}
+
+/* ── 赠诗漫游 panel (gift-network roaming) — docked bottom-left, above the hint bar ── */
+.giftroam {
+  position: fixed;
+  left: 20px;
+  bottom: 44px;
+  z-index: 21;
+  width: 300px;
+  max-height: 46vh;
+  overflow: auto;
+  background: rgba(8, 10, 18, 0.86);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 210, 122, 0.22);
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+  font-size: 13px;
+}
+.gr-title {
+  color: var(--gold);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+.gr-sub {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+.gr-section {
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 7px;
+}
+.gr-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin-bottom: 5px;
+}
+.gr-dim,
+.gr-dim-inline {
+  color: var(--muted);
+  font-size: 11px;
+}
+.gr-dim {
+  padding: 2px 0;
+}
+.gr-links {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 22vh;
+  overflow: auto;
+}
+.gr-link {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.gr-link-go {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 6px;
+  cursor: pointer;
+  text-align: left;
+}
+.gr-link-go:hover {
+  background: rgba(255, 210, 122, 0.12);
+}
+.gr-dir {
+  font-size: 10px;
+  white-space: nowrap;
+  flex: none;
+}
+.gr-dir.out {
+  color: #ffcf66;
+}
+.gr-dir.in {
+  color: #7fd1ff;
+}
+.gr-link-name {
+  color: var(--fg);
+  flex: 1;
+  min-width: 0;
+}
+.gr-w {
+  color: var(--muted);
+  font-size: 10px;
+  flex: none;
+}
+.gr-dedi {
+  flex: none;
+  max-width: 44%;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gr-dedi:hover {
+  color: var(--gold);
+}
+.gr-trail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.7;
+}
+.gr-arrow {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 0 1px;
+}
+.gr-node {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: var(--fg);
+  font-size: 12px;
+  padding: 1px 7px;
+  cursor: pointer;
+}
+.gr-node:hover {
+  border-color: rgba(255, 210, 122, 0.5);
+}
+.gr-node.cur {
+  background: rgba(255, 207, 102, 0.18);
+  border-color: rgba(255, 207, 102, 0.55);
+  color: var(--gold);
+}
+.gr-node.path {
+  border-color: rgba(127, 209, 255, 0.45);
+}
+.gr-clear {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.gr-clear:hover {
+  color: #ff9a9a;
+}
+.gr-path-set {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.gr-slot {
+  color: var(--fg);
+  font-size: 12px;
+  min-width: 38px;
+}
+.gr-set,
+.gr-find {
+  background: rgba(8, 10, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 7px;
+  color: var(--fg);
+  font-size: 12px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.gr-set:hover:not(:disabled),
+.gr-find:hover:not(:disabled) {
+  border-color: rgba(255, 210, 122, 0.5);
+}
+.gr-set:disabled,
+.gr-find:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.gr-path-act {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* path endpoint rows (typed poet search + 选中 button) */
+.gr-endpoint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.gr-ep-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(8, 10, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  padding: 4px 9px;
+  color: var(--fg);
+  font-size: 12px;
+  outline: none;
+}
+.gr-ep-input:focus {
+  border-color: rgba(255, 210, 122, 0.5);
+}
+.gr-ac {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 6px;
+}
+.gr-ac-row {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: var(--fg);
+  font-size: 12px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.gr-ac-row:hover {
+  border-color: rgba(255, 210, 122, 0.5);
+}
+.gr-dim-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* ── 诗云设置 menu (top-right, mirrors the search panel) ── */
+.settings {
+  position: fixed;
+  top: 64px;
+  right: 20px;
+  z-index: 23;
+  width: 300px;
+  max-height: 78vh;
+  overflow: auto;
+  background: rgba(8, 10, 18, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px 14px;
+}
+.set-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--gold);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+.set-head.drag {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.set-head.drag:active {
+  cursor: grabbing;
+}
+.set-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.set-close:hover {
+  color: var(--fg);
+}
+.set-group {
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 9px;
+}
+.set-label {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin-bottom: 7px;
+}
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.set-sub {
+  color: var(--muted);
+  font-size: 12px;
+  width: 30px;
+  flex: none;
+}
+.set-row .seg {
+  flex: 1;
+}
+.set-slider {
+  flex: 1;
+  accent-color: #ffcf66;
+}
+.set-val {
+  color: var(--fg);
+  font-size: 12px;
+  width: 40px;
+  text-align: right;
+  flex: none;
+}
+.set-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--fg);
+  font-size: 12px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.set-toggle input {
+  accent-color: #ffcf66;
+}
+.set-reset {
+  margin-top: 4px;
+  background: rgba(8, 10, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.set-reset.wide {
+  width: 100%;
+  margin-top: 12px;
+}
+.set-reset:hover:not(:disabled) {
+  border-color: rgba(255, 210, 122, 0.5);
+  color: var(--fg);
+}
+.set-reset:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 诗名指引 hover tooltip */
+.poem-hover {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
+  background: rgba(8, 10, 18, 0.86);
+  border: 1px solid rgba(255, 210, 122, 0.4);
+  border-radius: 6px;
+  padding: 2px 9px;
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--gold);
+  white-space: nowrap;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── unified thin scrollbar across the overlay panels (item 5) ── */
+.giftroam,
+.gr-links,
+.settings,
+.search-results,
+.line-results,
+.poet-panel,
+.poem-panel {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 210, 122, 0.35) transparent;
+}
+.giftroam::-webkit-scrollbar,
+.gr-links::-webkit-scrollbar,
+.settings::-webkit-scrollbar,
+.search-results::-webkit-scrollbar,
+.line-results::-webkit-scrollbar,
+.poet-panel::-webkit-scrollbar,
+.poem-panel::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.giftroam::-webkit-scrollbar-thumb,
+.gr-links::-webkit-scrollbar-thumb,
+.settings::-webkit-scrollbar-thumb,
+.search-results::-webkit-scrollbar-thumb,
+.line-results::-webkit-scrollbar-thumb,
+.poet-panel::-webkit-scrollbar-thumb,
+.poem-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 210, 122, 0.32);
+  border-radius: 4px;
+}
+.giftroam::-webkit-scrollbar-thumb:hover,
+.gr-links::-webkit-scrollbar-thumb:hover,
+.settings::-webkit-scrollbar-thumb:hover,
+.search-results::-webkit-scrollbar-thumb:hover,
+.line-results::-webkit-scrollbar-thumb:hover,
+.poet-panel::-webkit-scrollbar-thumb:hover,
+.poem-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 210, 122, 0.5);
+}
+.giftroam::-webkit-scrollbar-track,
+.gr-links::-webkit-scrollbar-track,
+.settings::-webkit-scrollbar-track,
+.search-results::-webkit-scrollbar-track,
+.line-results::-webkit-scrollbar-track,
+.poet-panel::-webkit-scrollbar-track,
+.poem-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Mobile peek bar (collapsed bottom-sheet state) ──────────────────────────
+   On touch devices the data panels (诗人 / 虚空诗 …) default to this slim bottom bar instead of a
+   full-screen sheet, so a selection never covers the galaxy — only a one-line hint + 「展开」. Tapping it
+   reveals the full sheet; an expanded mobile sheet gets a 「收起」 handle to come back. Rendered only when
+   COARSE (JS-gated in the panels), so it needs NO @media and works on tablets (>600px) too. */
+.sheet-peek {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  background: linear-gradient(180deg, rgba(20, 22, 34, 0.95), rgba(10, 11, 20, 0.95));
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 210, 122, 0.32);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  animation: peek-up 0.26s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@keyframes peek-up {
+  from {
+    opacity: 0;
+    transform: translateY(120%);
+  }
+}
+.peek-label {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  flex: none;
+}
+.peek-sub {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.peek-cue {
+  flex: none;
+  color: var(--gold);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.peek-x {
+  flex: none;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 24px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}
+/* the 「收起」 handle at the top of an expanded mobile sheet (re-collapses to the peek bar) */
+.peek-collapse {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  padding: 0 0 8px;
+  margin: -6px 0 2px;
+  cursor: pointer;
+}
+.peek-collapse:hover {
+  color: var(--gold);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MOBILE / NARROW-SCREEN ADAPTATION (≤600px)
+   The desktop layout is a set of fixed-width floating panels (340–384px) anchored
+   right:24px / left:20px / top:50% — every one overflows a ~360–430px phone, and the
+   10-control HUD row needs ~1170px with no wrap. This block:
+   • wraps + trims + safe-area-pads the HUD (top & bottom bars)
+   • turns the transient panels (诗/诗人/设置/赠诗漫游) into full-width bottom sheets
+   • keeps the always-present 搜索 panel at the top, full-width, below the wrapped HUD
+   • bumps inputs to 16px (iOS won't zoom-on-focus) + tap targets to ≥44px (pointer:coarse)
+   • swaps vh max-heights to a vh→dvh cascade (iOS dynamic-toolbar safe)
+   All verifiable headless via build + responsive-viewport DOM checks.
+   ════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  /* bottom sheets slide up (the desktop `rise` keyframe assumed translateY(-50%) centring) */
+  @keyframes sheet-up {
+    from {
+      transform: translateY(100%);
+    }
+  }
+
+  /* ── HUD top bar: wrap, compact, safe-area; drop desktop-only chrome ── */
+  .hud-top {
+    gap: 8px;
+    padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
+    flex-wrap: wrap;
+  }
+  .title {
+    font-size: 17px;
+    letter-spacing: 0.1em;
+  }
+  /* the English subtitle, the poet/poem stat, and the screenshot-mode toggle are desktop affordances */
+  .title-en,
+  .stat,
+  .ui-hide-btn {
+    display: none;
+  }
+  .seg-btn {
+    padding: 7px 11px;
+  }
+  .filter {
+    padding: 7px 11px;
+  }
+
+  /* ── HUD bottom: the hint describes WASD/拖拽/滚轮 (wrong on touch) → hide; keep the speed readout ── */
+  .hud-bottom {
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  }
+  .hint {
+    display: none;
+  }
+
+  /* ── transient overlays → full-width bottom sheets (collision-free with the top HUD) ── */
+  .poem-panel,
+  .poet-panel,
+  .settings,
+  .giftroam {
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    /* NOT !important: an !important element transform would beat the sheet-up keyframe (spec: important
+       declarations win over animations) and kill the slide. Plain `none` still overrides the base
+       translateY(-50%) by later source order, and lets sheet-up animate transform → none on entry. */
+    transform: none;
+    border-radius: 16px 16px 0 0;
+    max-height: 82vh;
+    max-height: 82dvh; /* dvh: respects the iOS URL-bar height; vh line above is the fallback */
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+    animation: sheet-up 0.28s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  /* giftroam is shorter so it doesn't dominate; its inner list scrolls */
+  .giftroam {
+    max-height: 56vh;
+    max-height: 56dvh;
+  }
+  .gr-links {
+    max-height: 34vh;
+    max-height: 34dvh;
+  }
+
+  /* ── 搜索 panel: always present → keep at TOP (clear of the keyboard), full-width below the HUD ── */
+  .search {
+    /* sit just below the LIVE wrapped HUD height (HUD.tsx publishes --hud-h incl. the notch safe-area);
+       104px is only the pre-measure fallback. Robust to wrap-row count / notch / font / orientation, so
+       the search tab bar never overlaps + covers the HUD's filter buttons (search-hud-collision). */
+    top: calc(var(--hud-h, 104px) + 8px);
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-width: none;
+  }
+  /* the draggable Settings header is a no-op on mobile (the sheet is pinned by !important), so drop the
+     misleading grab cursor (the drag arming itself is also gated off on coarse pointers in SettingsMenu). */
+  .set-head.drag,
+  .set-head.drag:active {
+    cursor: default;
+  }
+  .search.collapsed {
+    width: auto;
+  }
+  .search-results {
+    max-height: 44vh;
+    max-height: 44dvh;
+  }
+  .line-results {
+    max-height: 52vh;
+    max-height: 52dvh;
+  }
+
+  /* ── inputs at 16px so iOS Safari does NOT zoom the viewport on focus ── */
+  .search input,
+  .idx-input,
+  .gr-ep-input {
+    font-size: 16px;
+  }
+  .compose-text {
+    font-size: 16px !important; /* override the desktop 15px !important rule above */
+  }
+
+  /* a full poem fits the narrower sheet */
+  .poem-body {
+    font-size: 22px;
+  }
+}
+
+/* ≥44px touch targets — only on actual touch devices, so desktop stays compact */
+@media (max-width: 600px) and (pointer: coarse) {
+  .panel-close,
+  .set-close {
+    font-size: 26px;
+    padding: 6px 12px;
+  }
+  .copy-btn,
+  .pi-locate,
+  .pi-cinema {
+    padding: 7px 12px;
+  }
+  .seg-btn,
+  .filter,
+  .stab,
+  .gr-node,
+  .gr-set,
+  .gr-find {
+    min-height: 40px;
+  }
+  .pi-row {
+    padding: 11px 2px;
+  }
+  .legend-row,
+  .search-row {
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   留影 / Cinema — a framed share card over the FROZEN scene (store.cinema pauses
+   the spin + void-pull + highlight lifecycles in the r3f layers). The overlay is
+   pointer-events:none so you can drag the camera THROUGH it to compose, then shoot;
+   only the controls (tagline arrows, exit) are clickable. ui/Cinema.tsx.
+   ════════════════════════════════════════════════════════════════════════════ */
+.cinema {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+/* 画框 (gold rule + corner brackets) removed — it collided with the top-left 退出 button and boxed in the
+   shot. The frozen starfield is the backdrop now; only the centred poem card carries the composition. */
+.cinema-tag {
+  position: absolute;
+  top: calc(34px + env(safe-area-inset-top));
+  /* centre via auto-margins (left/right:0) instead of left:50%+translateX, so the shrink-to-fit box can
+     use the FULL viewport width — left:50% capped it at half the screen and forced needless wrapping. */
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
+  max-width: min(880px, 92vw);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  pointer-events: auto;
+}
+.cinema-tag-text {
+  font-family: var(--serif);
+  font-size: clamp(15px, 2.4vw, 20px);
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  text-align: center;
+  /* balance the lines so the tagline never orphans its last character (首。) onto a line of its own */
+  text-wrap: balance;
+  color: var(--gold-soft);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9);
+}
+.cinema-arrow {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(8, 10, 18, 0.55);
+  border: 1px solid rgba(255, 210, 122, 0.4);
+  color: var(--gold);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cinema-arrow:hover {
+  background: rgba(255, 210, 122, 0.16);
+}
+/* resize / reset controls — top-right, mirror of the top-left 退出. Drag the poem itself to move it. */
+.cinema-tools {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top));
+  right: calc(10px + env(safe-area-inset-right));
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+.cinema-tool {
+  width: 34px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(8, 10, 18, 0.55);
+  border: 1px solid rgba(255, 210, 122, 0.4);
+  color: var(--gold);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cinema-tool:hover {
+  background: rgba(255, 210, 122, 0.16);
+}
+/* one-time hint, fades out of the way after the first drag/zoom (touched=true) */
+.cinema-hint {
+  position: absolute;
+  bottom: calc(74px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.cinema-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 92vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  /* draggable to reposition + pinch/wheel/±-zoomable to resize — the user composes where the poem sits in
+     the shot (item 3). transform/cursor are set inline from Cinema.tsx. */
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  cursor: grab;
+  will-change: transform;
+}
+/* classical 竖排: each line is an upright column; columns flow right→left. NO max-width/height/overflow:
+   a long poem renders at FULL length (it may extend past the viewport edges) — the user zooms out with the
+   − control + drags to compose, instead of having the left columns clipped/occluded. */
+.cinema-poem {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-family: var(--serif);
+  font-size: clamp(19px, 3.6vh, 30px);
+  letter-spacing: 0.18em;
+  color: #f6f2e6;
+  text-shadow: 0 2px 22px rgba(0, 0, 0, 0.95), 0 0 30px rgba(255, 210, 122, 0.15);
+}
+.cinema-line {
+  padding: 0 0.4em; /* horizontal gap between the upright columns */
+  white-space: nowrap; /* one line = one column (never wraps into a second column) */
+}
+.cinema-attr {
+  margin-top: 12px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+}
+.cinema-idx {
+  margin-top: 8px;
+}
+.cinema-idx-k {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.cinema-idx-num {
+  margin-top: 3px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  line-height: 1.45;
+  color: rgba(185, 194, 214, 0.85);
+  word-break: break-all;
+  max-height: 4.4em;
+  overflow: hidden;
+}
+.cinema-brand {
+  position: absolute;
+  bottom: calc(36px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+}
+/* exit: tucked into the TOP-LEFT corner (out of the shot's composition) but RED so it's easy to find */
+.cinema-exit {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top));
+  left: calc(10px + env(safe-area-inset-left));
+  pointer-events: auto;
+  background: rgba(22, 4, 6, 0.55);
+  border: 1px solid rgba(255, 84, 84, 0.65);
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.cinema-exit:hover {
+  background: rgba(255, 84, 84, 0.18);
+  color: #ff9a9a;
+}
+/* 留影(cinema) entry button (poem / poet panels) — same size as .copy-btn.share so the pair is uniform */
+.cinema-btn {
+  background: rgba(255, 210, 122, 0.12);
+  border: 1px solid rgba(255, 210, 122, 0.42);
+  border-radius: 6px;
+  color: var(--gold);
+  font-size: 11px;
+  padding: 3px 10px;
+  margin-left: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.cinema-btn:hover {
+  background: rgba(255, 210, 122, 0.22);
+}
+/* 拾遗 collect toggle in the void-poem panel — sits beside 分享/留影 as a uniform pair (same .cinema-btn
+   size). The `.on` (已在拾遗 ✓) state fills in so "kept" reads at a glance. */
+.cinema-btn.shiyi.on {
+  background: rgba(255, 210, 122, 0.3);
+  border-color: rgba(255, 210, 122, 0.7);
+  color: #ffe6b8;
+}
+.cinema-btn.shiyi.on:hover {
+  background: rgba(255, 210, 122, 0.4);
+}
+
+/* ── 关于 / 链接 + 页内反馈 (更多 菜单底部) ── */
+.set-links {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.set-link {
+  flex: 1;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  color: var(--fg);
+  font-size: 12px;
+  padding: 6px 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.set-link:hover {
+  border-color: rgba(255, 210, 122, 0.5);
+  color: var(--gold);
+}
+/* 开源致谢 modal (opened from the 关于·反馈 links row) — mirrors the feedback viewer overlay */
+.credits-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 3, 8, 0.6);
+  backdrop-filter: blur(4px);
+}
+.credits-card {
+  width: min(560px, 92vw);
+  max-height: 80vh;
+  max-height: 80dvh;
+  overflow: auto;
+  background: linear-gradient(180deg, rgba(16, 18, 28, 0.97), rgba(8, 9, 16, 0.96));
+  border: 1px solid rgba(255, 210, 122, 0.22);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.6);
+}
+.credits-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--gold);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.credits-intro {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 12px;
+}
+.credits-group {
+  margin-bottom: 12px;
+}
+.credits-gtitle {
+  color: var(--gold-soft);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  margin-bottom: 5px;
+}
+.credits-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.credits-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.credits-list a {
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 210, 122, 0.35);
+}
+.credits-list a:hover {
+  color: var(--gold);
+}
+.credits-note {
+  color: var(--muted);
+  flex: 1;
+  min-width: 0;
+}
+.credits-lic {
+  color: rgba(185, 194, 214, 0.6);
+  font-size: 10px;
+  font-family: ui-monospace, Menlo, monospace;
+  flex: none;
+}
+.credits-foot {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+.set-feedback-open {
+  width: 100%;
+  background: rgba(255, 210, 122, 0.1);
+  border: 1px solid rgba(255, 210, 122, 0.34);
+  border-radius: 7px;
+  color: var(--gold);
+  font-size: 12px;
+  padding: 7px;
+  cursor: pointer;
+}
+.set-feedback-open:hover {
+  background: rgba(255, 210, 122, 0.18);
+}
+.set-feedback-input {
+  width: 100%;
+  background: rgba(8, 10, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--fg);
+  font-size: 13px;
+  resize: vertical;
+  outline: none;
+}
+.set-feedback-input:focus {
+  border-color: rgba(255, 210, 122, 0.5);
+}
+.set-feedback-act {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.set-feedback-cancel {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.set-feedback-send {
+  flex: 1;
+  background: linear-gradient(180deg, rgba(255, 210, 122, 0.9), rgba(245, 200, 110, 0.8));
+  border: none;
+  border-radius: 7px;
+  color: #1a1206;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.set-feedback-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.set-feedback-ok {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--gold);
+  text-align: center;
+}
+
+/* ── owner-only feedback inbox (hidden 5-tap gesture) ── */
+.fbv-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 3, 8, 0.6);
+  backdrop-filter: blur(4px);
+}
+.fbv-card {
+  width: min(560px, 92vw);
+  max-height: 80vh;
+  max-height: 80dvh;
+  overflow: auto;
+  background: linear-gradient(180deg, rgba(16, 18, 28, 0.97), rgba(8, 9, 16, 0.96));
+  border: 1px solid rgba(255, 210, 122, 0.22);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.6);
+}
+.fbv-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--gold);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.fbv-empty {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 14px 2px;
+}
+.fbv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fbv-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 8px;
+}
+.fbv-time {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.fbv-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fg);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.fbv-clear {
+  margin-top: 12px;
+  background: none;
+  border: 1px solid rgba(255, 120, 120, 0.4);
+  border-radius: 7px;
+  color: #ff9a9a;
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.fbv-clear:hover {
+  background: rgba(255, 120, 120, 0.12);
+}
+
+/* ── 拾遗 revisit panel (我捞起的诗) — reuses .fbv-overlay / .fbv-card; rows are click-to-restore ── */
+.shiyi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.shiyi-item {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 6px;
+}
+.shiyi-open {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 40px; /* coarse-pointer tap target */
+  background: none;
+  border: none;
+  border-radius: 7px;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.shiyi-open:hover {
+  background: rgba(255, 210, 122, 0.1);
+}
+.shiyi-preview {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fg);
+  word-break: break-word;
+}
+.shiyi-time {
+  flex: none;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.shiyi-del {
+  flex: none;
+  min-width: 40px;
+  background: none;
+  border: 1px solid rgba(255, 120, 120, 0.32);
+  border-radius: 7px;
+  color: #ff9a9a;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.shiyi-del:hover {
+  background: rgba(255, 120, 120, 0.12);
+}
+.shiyi-foot {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Music Cloud: shiyun-style HUD, floating search, detail drawer, and status-player. */
+.music-hud .title {
+  letter-spacing: 0.1em;
+}
+
+.music-search .search-row.on {
+  background: rgba(255, 210, 122, 0.12);
+}
+
+.music-search-form input {
+  width: 100%;
+}
+
+.music-account-row,
+.music-cover-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.music-account-row img,
+.music-cover-row img,
+.music-cover-row > div {
+  width: 54px;
+  height: 54px;
+  flex: none;
+  border-radius: 9px;
+  object-fit: cover;
+  background: linear-gradient(135deg, rgba(255, 210, 122, 0.26), rgba(98, 243, 198, 0.16));
+}
+
+.music-account-row span {
+  min-width: 0;
+  flex: 1;
+}
+
+.music-logout-btn {
+  flex: none;
+  min-width: 48px;
+  border: 1px solid rgba(255, 210, 122, 0.34);
+  border-radius: 7px;
+  background: rgba(255, 210, 122, 0.08);
+  color: var(--gold);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+
+.music-account-row strong {
+  display: block;
+  overflow: hidden;
+  color: var(--fg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-account-row small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.music-login-box {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.music-qr {
+  width: 178px;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.music-result-list {
+  max-height: 54vh;
+}
+
+.music-detail-panel .poet-name {
+  color: var(--gold);
+}
+
+.music-cover-row {
+  margin: 12px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.music-lyrics {
+  max-height: 46vh;
+  overflow: auto;
+  padding-right: 4px;
+  scroll-padding-block: 42%;
+}
+
+.music-lyrics p {
+  margin: 0;
+  padding: 6px 0;
+  color: rgba(232, 236, 244, 0.55);
+  line-height: 1.55;
+}
+
+.music-lyrics p.active {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.music-artist-tracks {
+  margin-top: 10px;
+  max-height: 58vh;
+  overflow: auto;
+}
+
+.music-player {
+  gap: 18px;
+  pointer-events: none;
+}
+
+.music-player * {
+  pointer-events: auto;
+}
+
+.music-now {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.music-now b {
+  max-width: min(34vw, 420px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-now span {
+  max-width: min(28vw, 360px);
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-transport {
+  display: grid;
+  grid-template-columns: repeat(3, auto) 42px minmax(160px, 300px) 42px minmax(80px, 120px);
+  align-items: center;
+  gap: 8px;
+}
+
+.music-transport button {
+  border: 1px solid rgba(255, 210, 122, 0.28);
+  border-radius: 7px;
+  background: rgba(255, 210, 122, 0.08);
+  color: var(--gold);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 9px;
+}
+
+.music-transport input {
+  accent-color: var(--gold);
+}
+
+.music-volume {
+  width: 100%;
+}
+
+.music-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 58px;
+  z-index: 35;
+  width: min(520px, calc(100vw - 36px));
+  padding: 9px 12px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 210, 122, 0.26);
+  border-radius: 8px;
+  background: rgba(8, 10, 18, 0.88);
+  color: var(--gold-soft);
+  font-size: 12px;
+  text-align: center;
+  backdrop-filter: blur(12px);
+}
+
+.music-empty {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 12;
+  display: grid;
+  gap: 8px;
+  width: min(420px, calc(100vw - 40px));
+  padding: 18px 20px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 210, 122, 0.18);
+  border-radius: 10px;
+  background: rgba(8, 10, 18, 0.62);
+  color: var(--muted);
+  text-align: center;
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+.music-empty strong {
+  color: var(--fg);
+  font-size: 24px;
+  letter-spacing: 0.03em;
+}
+
+.music-empty span {
+  line-height: 1.65;
+}
+
+.music-star-label,
+.music-track-label {
+  max-width: 240px;
+  overflow: hidden;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 210, 122, 0.28);
+  border-radius: 8px;
+  background: rgba(8, 10, 18, 0.72);
+  color: var(--gold);
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+}
+
+.music-track-label {
+  display: grid;
+  gap: 2px;
+  transform: translateY(-26px);
+}
+
+.music-track-label span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 760px) {
+  .music-player {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .music-transport {
+    grid-template-columns: repeat(3, auto);
+  }
+
+  .music-transport span,
+  .music-transport input {
+    display: none;
+  }
+
+  .music-now b,
+  .music-now span {
+    max-width: 78vw;
+  }
+}

@@ -1,0 +1,25 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Local build-time env (secrets/endpoints); .env.example IS tracked as the template.
+.env
+.env.local
+.env.*.local
+
+# Generated heavy buckets — regenerate with `node pipeline/build-data.mjs`.
+# (charset/poets.index/lexicon/manifest/gifts ARE tracked so the galaxy + author search +
+#  格律 + 半编号 + 赠诗网络 work in a fresh worktree; only the per-poet poem TEXT and the
+#  first-line content-search index need regenerating.)
+# NOTE: no inline comments below — git treats trailing text as part of the path pattern.
+public/data/poems/
+public/data/lines/
+public/data/linesf/
+public/data/search/
+public/data/_fztmp/
+public/data/_sxtmp/
+
+# Cold-backup tarballs produced by `npm run pack:data` (pipeline/pack-data.mjs) — never commit these;
+# they're the multi-hundred-MB GitHub-release assets, regenerated from public/data on demand.
+backup-pack/

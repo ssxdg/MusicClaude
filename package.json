@@ -1,0 +1,62 @@
+{
+  "name": "music-claue",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Music Cloud - a NetEase Cloud Music playlist galaxy player based on shiyun.",
+  "homepage": "https://shiyun.cohenjikan.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cohenjikan/shiyun.git"
+  },
+  "license": "MIT",
+  "author": "Cohenjikan (https://cohenjikan.com)",
+  "keywords": [
+    "music",
+    "netease-cloud-music",
+    "three.js",
+    "webgl",
+    "react-three-fiber",
+    "generative",
+    "library-of-babel",
+    "visualization",
+    "music-cloud"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "netease:api": "npx -y @neteaseapireborn/api",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "precompress": "node deploy/precompress.mjs",
+    "build:sidecars": "node pipeline/build-sidecars.mjs",
+    "build:lines": "node --max-old-space-size=4096 pipeline/build-lines.mjs",
+    "build:search": "node --max-old-space-size=4096 pipeline/build-search.mjs",
+    "build:fuzzy": "node --max-old-space-size=8192 pipeline/build-fuzzy.mjs",
+    "pack:data": "node pipeline/pack-data.mjs",
+    "deploy:build": "npm run build && npm run precompress"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.114.3",
+    "@react-three/fiber": "^8.17.10",
+    "@react-three/postprocessing": "^2.19.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.169.0",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.169.0",
+    "@vitejs/plugin-react": "^6.0.2",
+    "opencc-js": "^1.3.1",
+    "pinyin-pro": "^3.28.1",
+    "typescript": "^5.6.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
+  }
+}
