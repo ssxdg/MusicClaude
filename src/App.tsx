@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { Galaxy } from "./three/Galaxy";
@@ -8,10 +8,10 @@ import { useStore } from "./state/store";
 import { MusicCloudUI } from "./music/MusicCloudUI";
 import { MusicStars } from "./music/MusicStars";
 import { MusicInteraction } from "./music/MusicInteraction";
-import { MusicCameraFocus } from "./music/MusicCameraFocus";
 import type { MusicArtist, MusicGalaxyData, MusicTrack } from "./music/types";
 
 const emptyGalaxy: MusicGalaxyData = { artists: [], tracks: [] };
+const DPR_MAX = WEAK ? 1.5 : 2;
 
 export default function App() {
   const quality = useStore((s) => s.quality);
@@ -20,9 +20,12 @@ export default function App() {
   const [selectedArtist, setSelectedArtist] = useState<MusicArtist | null>(null);
   const [hoveredTrack, setHoveredTrack] = useState<MusicTrack | null>(null);
   const [hoveredArtist, setHoveredArtist] = useState<MusicArtist | null>(null);
-  const [overviewSignal, setOverviewSignal] = useState(0);
-  const [focusSignal, setFocusSignal] = useState(0);
-  const dprMax = WEAK || quality === "low" ? 1.25 : 1.5;
+  const lockSeq = useRef(0);
+  const [musicLockTarget, setMusicLockTarget] = useState<{
+    key: string;
+    kind: "artist" | "track";
+    target: [number, number, number];
+  } | null>(null);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -44,9 +47,23 @@ export default function App() {
     };
   }, [hoveredArtist, hoveredTrack]);
 
+  const lockMusicTarget = (kind: "artist" | "track", id: number, target: [number, number, number]) => {
+    lockSeq.current += 1;
+    setMusicLockTarget({ key: `${kind}:${id}:${lockSeq.current}`, kind, target });
+  };
+
   const selectTrack = (track: MusicTrack | null) => {
     setSelectedTrack(track);
     setSelectedArtist(track ? galaxy.artists.find((artist) => artist.id === track.artistId) ?? null : null);
+    if (track) lockMusicTarget("track", track.id, track.position);
+    else setMusicLockTarget(null);
+  };
+
+  const selectArtist = (artist: MusicArtist | null) => {
+    setSelectedArtist(artist);
+    setSelectedTrack(null);
+    if (artist) lockMusicTarget("artist", artist.id, artist.position);
+    else setMusicLockTarget(null);
   };
 
   const playFromCanvas = (track: MusicTrack) => {
@@ -55,15 +72,14 @@ export default function App() {
   };
 
   const selectArtistFromCanvas = (artist: MusicArtist) => {
-    setSelectedArtist(artist);
-    setSelectedTrack(null);
+    selectArtist(artist);
   };
 
   return (
     <div className={hoveredArtist || hoveredTrack ? "app music-cloud-app interactive" : "app music-cloud-app"}>
       <Canvas
         camera={{ position: [700, 4600, 4600], fov: 55, near: 0.1, far: 18000 }}
-        dpr={[1, dprMax]}
+        dpr={[1, DPR_MAX]}
         gl={{ antialias: false, powerPreference: "high-performance" }}
         onCreated={({ camera }) => camera.lookAt(0, 0, 0)}
       >
@@ -86,16 +102,10 @@ export default function App() {
           onSelectArtist={selectArtistFromCanvas}
           onSelectTrack={playFromCanvas}
         />
-        <FlyControls />
-        <MusicCameraFocus
-          target={selectedTrack?.position ?? selectedArtist?.position ?? null}
-          kind={selectedTrack ? "track" : selectedArtist ? "artist" : null}
-          focusSignal={focusSignal}
-          overviewSignal={overviewSignal}
-        />
+        <FlyControls musicLockTarget={musicLockTarget} />
         {quality === "high" && (
           <EffectComposer>
-            <Bloom intensity={1.35} luminanceThreshold={0.1} luminanceSmoothing={0.28} radius={0.85} mipmapBlur />
+            <Bloom intensity={1.4} luminanceThreshold={0.1} luminanceSmoothing={0.28} radius={0.85} mipmapBlur />
           </EffectComposer>
         )}
       </Canvas>
@@ -106,9 +116,7 @@ export default function App() {
         selectedTrack={selectedTrack}
         selectedArtist={selectedArtist}
         onSelectedTrack={selectTrack}
-        onSelectedArtist={setSelectedArtist}
-        onFocusSelected={() => setFocusSignal((value) => value + 1)}
-        onOverview={() => setOverviewSignal((value) => value + 1)}
+        onSelectedArtist={selectArtist}
       />
 
       {!galaxy.tracks.length && (

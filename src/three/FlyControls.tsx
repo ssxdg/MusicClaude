@@ -48,7 +48,17 @@ const _mat = new THREE.Matrix4();
 const _quat = new THREE.Quaternion();
 const _flyV = new THREE.Vector3();
 
-export function FlyControls() {
+export interface MusicLockTarget {
+  key: string;
+  kind: "artist" | "track";
+  target: [number, number, number];
+}
+
+interface FlyControlsProps {
+  musicLockTarget?: MusicLockTarget | null;
+}
+
+export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
   const euler = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
@@ -70,6 +80,16 @@ export function FlyControls() {
   // analog fly thrust from a two-finger drag, in WASD convention (z<0 forward, x>0 right); {0,0} when
   // no touch-fly is active. Read in useFrame and ADDED on top of the keyboard fly vector.
   const touchThrust = useRef({ z: 0, x: 0 });
+  const musicLockRef = useRef<MusicLockTarget | null>(musicLockTarget);
+  const musicLockReleased = useRef(false);
+
+  if (musicLockRef.current?.key !== musicLockTarget?.key) {
+    musicLockRef.current = musicLockTarget;
+    musicLockReleased.current = false;
+    lock.current.key = "";
+  } else {
+    musicLockRef.current = musicLockTarget;
+  }
 
   useEffect(() => {
     ray.current.params.Points = { threshold: 80 };
@@ -140,7 +160,10 @@ export function FlyControls() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTyping()) return;
       keys.current[e.code] = true;
-      if (MOVE_KEYS.has(e.code)) st().unlock(); // a movement key frees the locked camera
+      if (MOVE_KEYS.has(e.code)) {
+        st().unlock(); // a movement key frees the locked camera
+        musicLockReleased.current = true;
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => (keys.current[e.code] = false);
     const onDown = (e: PointerEvent) => {
@@ -159,6 +182,7 @@ export function FlyControls() {
           // releasing any lock mirrors how a movement key frees the camera on desktop → lets touch users
           // leave a locked view by starting a two-finger gesture.
           st().unlock();
+          musicLockReleased.current = true;
         }
       }
     };
@@ -203,6 +227,11 @@ export function FlyControls() {
         drag.current.lastX = e.clientX;
         drag.current.lastY = e.clientY;
         drag.current.moved += Math.abs(dx) + Math.abs(dy);
+        if (musicLockRef.current && !musicLockReleased.current) {
+          lock.current.yaw -= dx * 0.005;
+          lock.current.pitch = Math.max(-1.4, Math.min(1.4, lock.current.pitch + dy * 0.005));
+          return;
+        }
         if (st().lockPoetId) {
           // locked → drag ORBITS the view around the target (does NOT release the lock)
           lock.current.yaw -= dx * 0.005;
@@ -310,6 +339,10 @@ export function FlyControls() {
       }
     };
     const onWheel = (e: WheelEvent) => {
+      if (musicLockRef.current && !musicLockReleased.current) {
+        lock.current.dist = Math.min(6000, Math.max(80, lock.current.dist * (e.deltaY > 0 ? 1.12 : 0.89)));
+        return;
+      }
       if (st().lockPoetId) {
         // locked → wheel adjusts the orbit DISTANCE (zoom in/out on the target)
         lock.current.dist = Math.min(6000, Math.max(40, lock.current.dist * (e.deltaY > 0 ? 1.12 : 0.89)));
@@ -354,6 +387,38 @@ export function FlyControls() {
 
   const tmpUp = useRef(new THREE.Vector3(0, 1, 0));
   useFrame((_, dt) => {
+    const musicLock = musicLockRef.current;
+    if (musicLock && !musicLockReleased.current) {
+      const [lx, ly, lz] = musicLock.target;
+      const [wx, wz] = spinXZ(lx, lz);
+      const target = _tgt.set(wx, ly, wz);
+      const key = `music:${musicLock.key}`;
+      if (lock.current.key !== key) {
+        lock.current.key = key;
+        lock.current.dist = musicLock.kind === "track" ? 720 : 1350;
+        const cur = _camOff.subVectors(camera.position, target);
+        const d = cur.length();
+        if (d > 1) {
+          lock.current.pitch = Math.asin(Math.max(-1, Math.min(1, cur.y / d)));
+          lock.current.yaw = Math.atan2(cur.x, cur.z);
+        } else {
+          lock.current.pitch = 0.32;
+          lock.current.yaw = 0;
+        }
+      }
+      const { yaw, pitch, dist } = lock.current;
+      const cp = Math.cos(pitch);
+      const desired = _desired
+        .copy(target)
+        .add(_off.set(Math.sin(yaw) * cp * dist, Math.sin(pitch) * dist, Math.cos(yaw) * cp * dist));
+      const k = 1 - Math.pow(0.0025, dt);
+      camera.position.lerp(desired, k);
+      const m = _mat.lookAt(camera.position, target, tmpUp.current);
+      camera.quaternion.slerp(_quat.setFromRotationMatrix(m), k);
+      euler.current.setFromQuaternion(camera.quaternion);
+      return;
+    }
+
     // camera LOCK: keep the selected poet (or one of its orbiting poems) centred + followed. The
     // target's LOCAL position is recomputed every frame (poetPosition / time-aware poemPosition) and
     // rotated into world by the live galaxy spin, so the camera tracks it as the galaxy turns and the

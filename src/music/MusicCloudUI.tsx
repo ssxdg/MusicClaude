@@ -16,8 +16,6 @@ interface MusicCloudUIProps {
   selectedArtist: MusicArtist | null;
   onSelectedTrack: (track: MusicTrack | null) => void;
   onSelectedArtist: (artist: MusicArtist | null) => void;
-  onFocusSelected: () => void;
-  onOverview: () => void;
 }
 
 function formatTime(seconds: number) {
@@ -32,8 +30,6 @@ export function MusicCloudUI({
   selectedArtist,
   onSelectedTrack,
   onSelectedArtist,
-  onFocusSelected,
-  onOverview,
 }: MusicCloudUIProps) {
   const [cookie, setCookie] = useState(readCookie);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -183,7 +179,6 @@ export function MusicCloudUI({
 
   const playTrack = (track: MusicTrack, queue = galaxy.tracks) => {
     onSelectedTrack(track);
-    onSelectedArtist(galaxy.artists.find((artist) => artist.id === track.artistId) ?? selectedArtist ?? null);
     void player.playTrack(track, queue.length ? queue : [track]);
   };
 
@@ -203,7 +198,6 @@ export function MusicCloudUI({
   const openNowTrackPanel = () => {
     if (!nowTrack) return;
     onSelectedTrack(nowTrack);
-    onSelectedArtist(galaxy.artists.find((artist) => artist.id === nowTrack.artistId) ?? selectedArtist ?? null);
   };
 
   useEffect(() => {
@@ -226,8 +220,6 @@ export function MusicCloudUI({
           {galaxy.tracks.length ? `${galaxy.tracks.length} 首歌` : "加载星河"}
         </button>
         <button className="filter" onClick={() => setTab("search")}>搜索</button>
-        <button className="filter" disabled={!selectedTrack && !selectedArtist} onClick={onFocusSelected}>聚焦</button>
-        <button className="filter" onClick={onOverview}>全景</button>
         <button className={quality === "high" ? "filter on" : "filter"} onClick={toggleQuality} title="切换星云画质">
           {quality === "high" ? "画质·高" : "画质·低"}
         </button>

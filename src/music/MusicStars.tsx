@@ -39,7 +39,7 @@ export function MusicStars({
             <sphereGeometry args={[active ? radius * 1.22 : radius, 24, 24]} />
             <meshBasicMaterial color={active ? "#ffd27a" : "#f5d56a"} toneMapped={false} />
           </mesh>
-          {active && <Html center distanceFactor={2200} style={{ pointerEvents: "none" }}>
+          {active && <Html center distanceFactor={2200} zIndexRange={[18, 0]} style={{ pointerEvents: "none" }}>
             <div className="music-star-label">{artist.name}</div>
           </Html>}
         </group>
@@ -55,7 +55,7 @@ export function MusicStars({
               <meshBasicMaterial color={selected ? "#ffd27a" : hovered ? "#f6dca6" : "#62f3c6"} toneMapped={false} />
             </mesh>
             {(selected || hovered) && (
-              <Html center distanceFactor={2100} style={{ pointerEvents: "none" }}>
+              <Html center distanceFactor={2100} zIndexRange={[18, 0]} style={{ pointerEvents: "none" }}>
                 <div className="music-track-label">
                   <strong>{track.name}</strong>
                   <span>{track.artistName}</span>

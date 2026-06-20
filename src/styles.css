@@ -2879,6 +2879,15 @@ canvas {
   color: var(--gold);
 }
 
+.music-detail-panel {
+  z-index: 45;
+  isolation: isolate;
+}
+
+.music-detail-panel .panel-close {
+  z-index: 2;
+}
+
 .music-cover-row {
   margin: 12px 0;
   padding-bottom: 12px;
