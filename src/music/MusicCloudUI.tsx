@@ -52,6 +52,7 @@ export function MusicCloudUI({
   const quality = useStore((state) => state.quality);
   const toggleQuality = useStore((state) => state.toggleQuality);
   const publicGalaxyStarted = useRef(false);
+  const lastSyncedPlaybackTrackId = useRef<number | null>(null);
 
   const loadPublicGalaxy = async (collapse = true) => {
     publicGalaxyStarted.current = true;
@@ -194,6 +195,17 @@ export function MusicCloudUI({
     };
   });
 
+  useEffect(() => {
+    const currentTrack = player.playback.currentTrack;
+    if (!currentTrack) {
+      lastSyncedPlaybackTrackId.current = null;
+      return;
+    }
+    if (lastSyncedPlaybackTrackId.current === currentTrack.id) return;
+    lastSyncedPlaybackTrackId.current = currentTrack.id;
+    if (selectedTrack?.id !== currentTrack.id) onSelectedTrack(currentTrack, "glide");
+  }, [onSelectedTrack, player.playback.currentTrack, selectedTrack?.id]);
+
   const activeLine = activeLyricIndex(player.playback.lyric, player.playback.progress);
   const panelTrack = selectedTrack;
   const nowTrack = player.playback.currentTrack ?? selectedTrack;
@@ -202,7 +214,7 @@ export function MusicCloudUI({
 
   const openNowTrackPanel = () => {
     if (!nowTrack) return;
-    onSelectedTrack(nowTrack, "none");
+    onSelectedTrack(nowTrack, "lock");
   };
 
   useEffect(() => {

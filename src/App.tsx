@@ -65,6 +65,13 @@ export default function App() {
     setMusicLockTarget({ key: `${kind}:${id}:${lockSeq.current}`, kind, mode, target });
   };
 
+  const releaseMusicFocus = () => {
+    setMusicLockTarget(null);
+    const store = useStore.getState();
+    store.unlock();
+    store.setFlyTarget(null);
+  };
+
   const resetMusicView = () => {
     lockMusicTarget("overview", "galaxy", [0, 0, 0], "glide");
   };
@@ -116,7 +123,7 @@ export default function App() {
     if (!track) {
       setSelectedTrack(null);
       setSelectedArtist(null);
-      setMusicLockTarget(null);
+      releaseMusicFocus();
       return;
     }
 
@@ -134,7 +141,7 @@ export default function App() {
     }
   };
 
-  const selectArtist = (artist: MusicArtist | null, focusMode: MusicFocusMode = "lock") => {
+  const selectArtist = (artist: MusicArtist | null, focusMode: MusicFocusMode = "none") => {
     if (artist && !hasArtistSystem(artist)) {
       const onlyTrack = galaxy.tracks.find((track) => track.artistId === artist.id) ?? null;
       selectTrack(onlyTrack, focusMode);
@@ -154,7 +161,7 @@ export default function App() {
   };
 
   const selectArtistFromCanvas = (artist: MusicArtist) => {
-    selectArtist(artist);
+    selectArtist(artist, "lock");
   };
 
   return (

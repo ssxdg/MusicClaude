@@ -64,7 +64,7 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
   const keys = useRef<Record<string, boolean>>({});
   const euler = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
   const speedMul = useRef(1);
-  const drag = useRef({ active: false, lastX: 0, lastY: 0, moved: 0, type: "" });
+  const drag = useRef({ active: false, lastX: 0, lastY: 0, moved: 0, type: "", pick: false });
   const ray = useRef(new THREE.Raycaster());
   const lastHover = useRef(0);
   // orbit state while a poet/planet is locked: spherical offset (yaw/pitch/dist) around the target.
@@ -83,14 +83,41 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
   const touchThrust = useRef({ z: 0, x: 0 });
   const musicLockRef = useRef<MusicLockTarget | null>(musicLockTarget);
   const musicLockReleased = useRef(false);
+  const musicLockStartedAt = useRef(0);
 
   if (musicLockRef.current?.key !== musicLockTarget?.key) {
     musicLockRef.current = musicLockTarget;
     musicLockReleased.current = false;
+    musicLockStartedAt.current = performance.now();
     lock.current.key = "";
   } else {
     musicLockRef.current = musicLockTarget;
   }
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const debug = window as unknown as {
+      musicCloudDebugCamera?: () => {
+        musicLock: MusicLockTarget | null;
+        musicLockReleased: boolean;
+        lockPoetId: string | null;
+        flyTarget: [number, number, number] | null;
+        position: [number, number, number];
+        quaternion: [number, number, number, number];
+      };
+    };
+    debug.musicCloudDebugCamera = () => ({
+      musicLock: musicLockRef.current,
+      musicLockReleased: musicLockReleased.current,
+      lockPoetId: useStore.getState().lockPoetId,
+      flyTarget: useStore.getState().flyTarget,
+      position: [camera.position.x, camera.position.y, camera.position.z],
+      quaternion: [camera.quaternion.x, camera.quaternion.y, camera.quaternion.z, camera.quaternion.w],
+    });
+    return () => {
+      delete debug.musicCloudDebugCamera;
+    };
+  }, [camera]);
 
   useEffect(() => {
     ray.current.params.Points = { threshold: 80 };
@@ -158,6 +185,13 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
       const a = document.activeElement;
       return a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
     };
+    const isCameraGestureTarget = (target: EventTarget | null) => {
+      const node = target instanceof Element ? target : null;
+      if (!node || !node.closest(".music-cloud-app")) return false;
+      return !node.closest(
+        "button,input,textarea,select,a,.music-search,.music-player,.music-artist-tracks",
+      );
+    };
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTyping()) return;
       keys.current[e.code] = true;
@@ -168,9 +202,11 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
     };
     const onKeyUp = (e: KeyboardEvent) => (keys.current[e.code] = false);
     const onDown = (e: PointerEvent) => {
+      const pickFromCanvas = e.target === el;
+      if (!pickFromCanvas && !isCameraGestureTarget(e.target)) return;
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY, type: e.pointerType });
       if (pointers.current.size === 1) {
-        drag.current = { active: true, lastX: e.clientX, lastY: e.clientY, moved: 0, type: e.pointerType };
+        drag.current = { active: true, lastX: e.clientX, lastY: e.clientY, moved: 0, type: e.pointerType, pick: pickFromCanvas };
       } else if (pointers.current.size === 2) {
         const pts = [...pointers.current.values()];
         // arm the two-finger fly/pinch gesture ONLY when both pointers are fingers — a mouse/pen
@@ -303,7 +339,7 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
       }
       // last pointer up (n === 0) → a tap-pick if it barely moved and wasn't part of a multi-touch gesture.
       const slop = drag.current.type === "touch" ? 14 : 6; // finger jitter is larger than a mouse click
-      const wasClick = had && drag.current.active && drag.current.moved < slop;
+      const wasClick = had && drag.current.active && drag.current.pick && drag.current.moved < slop;
       drag.current.active = false;
       if (!wasClick) return;
       const hit = screenPick(e.clientX, e.clientY, true); // click = poets + poem planets
@@ -343,6 +379,7 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
       }
     };
     const onWheel = (e: WheelEvent) => {
+      if (!isCameraGestureTarget(e.target)) return;
       if (musicLockRef.current && !musicLockReleased.current) {
         if (musicLockRef.current.mode === "lock") {
           lock.current.dist = Math.min(6000, Math.max(80, lock.current.dist * (e.deltaY > 0 ? 1.12 : 0.89)));
@@ -374,19 +411,19 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
       drag.current.active = false;
     };
 
-    el.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointerdown", onDown, true);
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onCancel);
-    el.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("wheel", onWheel, { passive: true });
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     return () => {
-      el.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointerdown", onDown, true);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
-      el.removeEventListener("wheel", onWheel);
+      window.removeEventListener("wheel", onWheel);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
@@ -423,8 +460,12 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
       const m = _mat.lookAt(camera.position, target, tmpUp.current);
       camera.quaternion.slerp(_quat.setFromRotationMatrix(m), k);
       euler.current.setFromQuaternion(camera.quaternion);
-      if (musicLock.mode === "glide" && camera.position.distanceTo(desired) < (musicLock.kind === "overview" ? 120 : 36)) {
-        musicLockReleased.current = true;
+      if (musicLock.mode === "glide") {
+        const releaseDistance = musicLock.kind === "overview" ? 120 : musicLock.kind === "artist" ? 260 : 80;
+        const maxGlideMs = musicLock.kind === "overview" ? 1400 : 900;
+        if (camera.position.distanceTo(desired) < releaseDistance || performance.now() - musicLockStartedAt.current > maxGlideMs) {
+          musicLockReleased.current = true;
+        }
       }
       return;
     }

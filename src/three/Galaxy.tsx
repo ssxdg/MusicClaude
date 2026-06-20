@@ -38,6 +38,8 @@ const cCore = new THREE.Color("#fff1d6"); // warm old-star bulge (~4500 K)
 const cInner = new THREE.Color("#fff7ec");
 const cMid = new THREE.Color("#ffffff");
 const cArm = new THREE.Color("#cfe0ff"); // blue-white young arm stars (~9000 K, less saturated)
+const cOuterCold = new THREE.Color("#9fd8ff");
+const cOuterWarm = new THREE.Color("#ffe5a8");
 const cHII = new THREE.Color("#ff6d92"); // pink HII regions
 
 export function Galaxy() {
@@ -49,8 +51,11 @@ export function Galaxy() {
     // those are dimmer/smaller below) → flying through, the resolvable stars are real poets.
     const DUST = hi ? 120000 : 42000; // soft dim haze (the nebulosity that fills the arms)
     const STARS = hi ? 9000 : 3500; // few faint decoration stars (poets are THE arm stars now)
+    const OUTER_DUST = hi ? 52000 : 17000; // edge veil for sparse outer arms
+    const OUTER_SPARKS = hi ? 7600 : 2500; // larger far glints on the rim
     const BULGE = hi ? 64000 : 24000; // dense core cloud — denser + wider (round-5) → fills the centre
-    const TOTAL = DUST + STARS + BULGE;
+    const BULGE_START = DUST + STARS + OUTER_DUST + OUTER_SPARKS;
+    const TOTAL = BULGE_START + BULGE;
     const rnd = mulberry32(31337);
     const R = GALAXY.RADIUS;
     const NF = 4.2 / R; // noise frequency
@@ -63,8 +68,11 @@ export function Galaxy() {
     const expR = (h: number, cap: number) => Math.min(cap, -h * Math.log(1 - rnd() * 0.9999));
 
     for (let i = 0; i < TOTAL; i++) {
-      const isBulge = i >= DUST + STARS;
-      const isStar = !isBulge && i >= DUST;
+      const isBulge = i >= BULGE_START;
+      const isOuterDust = i >= DUST + STARS && i < DUST + STARS + OUTER_DUST;
+      const isOuterSpark = i >= DUST + STARS + OUTER_DUST && i < BULGE_START;
+      const isOuter = isOuterDust || isOuterSpark;
+      const isStar = !isBulge && !isOuter && i >= DUST;
       let x: number, y: number, z: number, t: number, armProx = 0, bright: number, hii = false;
 
       if (isBulge) {
@@ -85,6 +93,30 @@ export function Galaxy() {
         // dots), with value-noise clumping so the density is uneven/disordered.
         const nz = vnoise(x * NF * 1.6, z * NF * 1.6);
         bright = (0.80 - t * 0.75) * (0.55 + rnd() * 0.5) * (0.7 + nz * 0.75); // modest floor lift → no dark patches
+      } else if (isOuter) {
+        // Extra outer-arm veil: keeps the galaxy rim textured without adding another hard mesh.
+        const rr = R * (0.58 + Math.pow(rnd(), 0.62) * 0.56);
+        t = rr / R;
+        const branch = (Math.floor(rnd() * GALAXY.BRANCHES) / GALAXY.BRANCHES) * Math.PI * 2;
+        const twist = t * GALAXY.TWIST;
+        const armDev = gauss3(rnd(), rnd(), rnd()) * GALAXY.ARM_SPREAD * (isOuterSpark ? 0.72 : 1.35);
+        const ripple = Math.sin(t * 17 + branch * 2) * 0.08 + gauss3(rnd(), rnd(), rnd()) * 0.1;
+        armProx = Math.exp(-((armDev / (GALAXY.ARM_SPREAD * 1.18)) ** 2) * 1.65);
+        const ang = branch + twist + armDev + ripple;
+        const finalR = rr + gauss3(rnd(), rnd(), rnd()) * R * (isOuterSpark ? 0.018 : 0.055);
+        const lateral = R * (isOuterSpark ? 0.012 : 0.026);
+        x = Math.cos(ang) * finalR + (rnd() - 0.5) * lateral;
+        z = Math.sin(ang) * finalR + (rnd() - 0.5) * lateral;
+        y = gauss3(rnd(), rnd(), rnd()) * R * (0.045 + Math.max(0, t - 0.72) * 0.15);
+        const nz = vnoise(x * NF * 0.72 + 21.3, z * NF * 0.72 - 9.7);
+        const rimFade = 1 - Math.max(0, t - 1.02) * 0.85;
+        bright =
+          (isOuterSpark ? 0.46 : 0.18) *
+          (0.58 + armProx * 1.18) *
+          (0.68 + nz * 0.72) *
+          (0.82 + rnd() * 0.42) *
+          Math.max(0.42, rimFade);
+        if (isOuterSpark && armProx > 0.52 && rnd() < 0.09) hii = true;
       } else {
         // disk: spiral arm population on an exponential radius
         const rr = expR(R * 0.27, R) + R * 0.015;
@@ -118,10 +150,13 @@ export function Galaxy() {
       pos[i * 3 + 2] = z;
 
       // colour: warm core → white mid → blue-white arms; lerp toward arm by arm-proximity
-      if (t < 0.12) c.copy(cCore).lerp(cInner, t / 0.12);
+      if (isOuter) {
+        const edgeTint = vnoise(x * NF * 0.48 + 7.1, z * NF * 0.48 + 4.4);
+        c.copy(cOuterCold).lerp(cOuterWarm, edgeTint * 0.42).lerp(cArm, armProx * 0.35);
+      } else if (t < 0.12) c.copy(cCore).lerp(cInner, t / 0.12);
       else if (t < 0.4) c.copy(cInner).lerp(cMid, (t - 0.12) / 0.28);
       else c.copy(cMid).lerp(cArm, Math.min(1, (t - 0.4) / 0.5));
-      if (!isBulge) c.lerp(cArm, armProx * 0.45);
+      if (!isBulge && !isOuter) c.lerp(cArm, armProx * 0.45);
       if (hii) c.copy(cHII);
       col[i * 3] = c.r * bright;
       col[i * 3 + 1] = c.g * bright;
@@ -131,6 +166,10 @@ export function Galaxy() {
       // into continuous haze instead of resolving as discrete dots; HII a touch bigger
       scale[i] = isBulge
         ? (1.5 + (0.3 - t) * 2.6) * (0.7 + rnd() * 0.7)
+        : isOuterSpark
+          ? (2.25 + armProx * 2.15 + (hii ? 1.2 : 0)) * (0.75 + rnd() * 0.7)
+          : isOuterDust
+            ? (1.35 + armProx * 1.65) * (0.72 + rnd() * 0.85)
         : isStar
           ? (0.7 + armProx * 0.8 + (hii ? 0.8 : 0)) * (0.7 + rnd() * 0.6) // smaller decoration stars
           : (0.5 + (1 - t) * 0.8) * (0.7 + rnd() * 0.5); // dust a touch larger to keep the haze full
