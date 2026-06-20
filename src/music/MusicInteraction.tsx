@@ -2,11 +2,13 @@ import * as THREE from "three";
 import { useEffect, useMemo, useRef } from "react";
 import { useThree } from "@react-three/fiber";
 import { spinXZ } from "../three/galaxyParams";
+import { musicTrackOrbitPosition } from "./orbitLayout";
 import type { MusicArtist, MusicTrack } from "./types";
 
 interface MusicInteractionProps {
   artists: MusicArtist[];
   tracks: MusicTrack[];
+  selectedArtistId: number | null;
   onHoverArtist: (artist: MusicArtist | null) => void;
   onHoverTrack: (track: MusicTrack | null) => void;
   onSelectArtist: (artist: MusicArtist) => void;
@@ -30,6 +32,7 @@ function screenPoint(pos: [number, number, number], camera: THREE.Camera, rect: 
 export function MusicInteraction({
   artists,
   tracks,
+  selectedArtistId,
   onHoverArtist,
   onHoverTrack,
   onSelectArtist,
@@ -38,12 +41,14 @@ export function MusicInteraction({
   const { camera, gl } = useThree();
   const artistsRef = useRef(artists);
   const tracksRef = useRef(tracks);
+  const selectedArtistIdRef = useRef(selectedArtistId);
   const down = useRef<{ x: number; y: number } | null>(null);
   const dragging = useRef(false);
   const lastHover = useRef(0);
 
   artistsRef.current = artists;
   tracksRef.current = tracks;
+  selectedArtistIdRef.current = selectedArtistId;
 
   const pick = useMemo(
     () => (clientX: number, clientY: number): Hit | null => {
@@ -51,9 +56,17 @@ export function MusicInteraction({
       const x = clientX - rect.left;
       const y = clientY - rect.top;
       let best: { d: number; hit: Hit } | null = null;
+      const selectedArtist = artistsRef.current.find((artist) => artist.id === selectedArtistIdRef.current) ?? null;
+      const selectedArtistTracks = selectedArtist
+        ? tracksRef.current.filter((track) => track.artistId === selectedArtist.id)
+        : [];
 
       for (const track of tracksRef.current) {
-        const p = screenPoint(track.position, camera, rect);
+        const position =
+          selectedArtist && track.artistId === selectedArtist.id
+            ? musicTrackOrbitPosition(selectedArtist, track, selectedArtistTracks)
+            : track.position;
+        const p = screenPoint(position, camera, rect);
         if (!p) continue;
         const d = Math.hypot(p.x - x, p.y - y);
         if (d <= 72 && d < (best?.d ?? Infinity)) best = { d, hit: { kind: "track", track } };

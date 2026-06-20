@@ -8,6 +8,7 @@ import { useStore } from "./state/store";
 import { MusicCloudUI } from "./music/MusicCloudUI";
 import { MusicStars } from "./music/MusicStars";
 import { MusicInteraction } from "./music/MusicInteraction";
+import { musicTrackOrbitPosition } from "./music/orbitLayout";
 import type { MusicArtist, MusicGalaxyData, MusicTrack } from "./music/types";
 
 const emptyGalaxy: MusicGalaxyData = { artists: [], tracks: [] };
@@ -52,10 +53,16 @@ export default function App() {
     setMusicLockTarget({ key: `${kind}:${id}:${lockSeq.current}`, kind, target });
   };
 
+  const trackOrbitPosition = (track: MusicTrack) => {
+    const artist = galaxy.artists.find((item) => item.id === track.artistId);
+    if (!artist) return track.position;
+    return musicTrackOrbitPosition(artist, track, galaxy.tracks.filter((item) => item.artistId === artist.id));
+  };
+
   const selectTrack = (track: MusicTrack | null) => {
     setSelectedTrack(track);
     setSelectedArtist(track ? galaxy.artists.find((artist) => artist.id === track.artistId) ?? null : null);
-    if (track) lockMusicTarget("track", track.id, track.position);
+    if (track) lockMusicTarget("track", track.id, trackOrbitPosition(track));
     else setMusicLockTarget(null);
   };
 
@@ -97,6 +104,7 @@ export default function App() {
         <MusicInteraction
           artists={galaxy.artists}
           tracks={galaxy.tracks}
+          selectedArtistId={selectedArtist?.id ?? null}
           onHoverArtist={setHoveredArtist}
           onHoverTrack={setHoveredTrack}
           onSelectArtist={selectArtistFromCanvas}
