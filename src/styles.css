@@ -434,6 +434,9 @@ canvas {
      their lists still scroll. This is THE prerequisite for all touch input (FlyControls). */
   touch-action: none;
 }
+.music-cloud-app.interactive canvas {
+  cursor: pointer !important;
+}
 
 /* floating poet labels (drei Html) */
 .poet-label {
@@ -510,6 +513,10 @@ canvas {
   border-color: rgba(255, 210, 122, 0.5);
   color: var(--gold);
   background: rgba(255, 210, 122, 0.1);
+}
+.filter:disabled {
+  cursor: default;
+  opacity: 0.42;
 }
 
 .hud-bottom {
@@ -2934,6 +2941,27 @@ canvas {
   white-space: nowrap;
 }
 
+.music-lyrics-open {
+  border: 1px solid rgba(127, 209, 255, 0.38);
+  border-radius: 7px;
+  background: rgba(127, 209, 255, 0.08);
+  color: #aee3ff;
+  cursor: pointer;
+  font: inherit;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.music-lyrics-open:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.music-lyrics-open:not(:disabled):hover {
+  border-color: rgba(127, 209, 255, 0.7);
+  background: rgba(127, 209, 255, 0.16);
+}
+
 .music-transport {
   display: grid;
   grid-template-columns: repeat(3, auto) 42px minmax(160px, 300px) 42px minmax(80px, 120px);
@@ -3054,5 +3082,9 @@ canvas {
   .music-now b,
   .music-now span {
     max-width: 78vw;
+  }
+
+  .music-lyrics-open {
+    min-height: 34px;
   }
 }

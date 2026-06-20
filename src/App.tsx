@@ -8,9 +8,9 @@ import { useStore } from "./state/store";
 import { MusicCloudUI } from "./music/MusicCloudUI";
 import { MusicStars } from "./music/MusicStars";
 import { MusicInteraction } from "./music/MusicInteraction";
+import { MusicCameraFocus } from "./music/MusicCameraFocus";
 import type { MusicArtist, MusicGalaxyData, MusicTrack } from "./music/types";
 
-const DPR_MAX = WEAK ? 1.5 : 2;
 const emptyGalaxy: MusicGalaxyData = { artists: [], tracks: [] };
 
 export default function App() {
@@ -20,6 +20,9 @@ export default function App() {
   const [selectedArtist, setSelectedArtist] = useState<MusicArtist | null>(null);
   const [hoveredTrack, setHoveredTrack] = useState<MusicTrack | null>(null);
   const [hoveredArtist, setHoveredArtist] = useState<MusicArtist | null>(null);
+  const [overviewSignal, setOverviewSignal] = useState(0);
+  const [focusSignal, setFocusSignal] = useState(0);
+  const dprMax = WEAK || quality === "low" ? 1.25 : 1.5;
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -57,10 +60,10 @@ export default function App() {
   };
 
   return (
-    <div className="app music-cloud-app">
+    <div className={hoveredArtist || hoveredTrack ? "app music-cloud-app interactive" : "app music-cloud-app"}>
       <Canvas
         camera={{ position: [700, 4600, 4600], fov: 55, near: 0.1, far: 18000 }}
-        dpr={[1, DPR_MAX]}
+        dpr={[1, dprMax]}
         gl={{ antialias: false, powerPreference: "high-performance" }}
         onCreated={({ camera }) => camera.lookAt(0, 0, 0)}
       >
@@ -74,10 +77,6 @@ export default function App() {
           selectedArtistId={selectedArtist?.id ?? null}
           hoverTrackId={hoveredTrack?.id ?? null}
           hoverArtistId={hoveredArtist?.id ?? null}
-          onHoverArtist={setHoveredArtist}
-          onHoverTrack={setHoveredTrack}
-          onSelectArtist={selectArtistFromCanvas}
-          onSelectTrack={playFromCanvas}
         />
         <MusicInteraction
           artists={galaxy.artists}
@@ -88,6 +87,12 @@ export default function App() {
           onSelectTrack={playFromCanvas}
         />
         <FlyControls />
+        <MusicCameraFocus
+          target={selectedTrack?.position ?? selectedArtist?.position ?? null}
+          kind={selectedTrack ? "track" : selectedArtist ? "artist" : null}
+          focusSignal={focusSignal}
+          overviewSignal={overviewSignal}
+        />
         {quality === "high" && (
           <EffectComposer>
             <Bloom intensity={1.35} luminanceThreshold={0.1} luminanceSmoothing={0.28} radius={0.85} mipmapBlur />
@@ -102,6 +107,8 @@ export default function App() {
         selectedArtist={selectedArtist}
         onSelectedTrack={selectTrack}
         onSelectedArtist={setSelectedArtist}
+        onFocusSelected={() => setFocusSignal((value) => value + 1)}
+        onOverview={() => setOverviewSignal((value) => value + 1)}
       />
 
       {!galaxy.tracks.length && (

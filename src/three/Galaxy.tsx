@@ -47,9 +47,9 @@ export function Galaxy() {
     // FUSION: the bright DISCRETE points should read as the (clickable) poets, not decoration.
     // So the backdrop is mostly diffuse haze + a soft core; few discrete decoration "stars" (and
     // those are dimmer/smaller below) → flying through, the resolvable stars are real poets.
-    const DUST = hi ? 120000 : 42000; // soft dim haze (the nebulosity that fills the arms)
-    const STARS = hi ? 9000 : 3500; // few faint decoration stars (poets are THE arm stars now)
-    const BULGE = hi ? 64000 : 24000; // dense core cloud — denser + wider (round-5) → fills the centre
+    const DUST = hi ? 76000 : 34000; // soft dim haze (the nebulosity that fills the arms)
+    const STARS = hi ? 6200 : 2600; // few faint decoration stars (poets are THE arm stars now)
+    const BULGE = hi ? 42000 : 18000; // dense core cloud — denser + wider (round-5) → fills the centre
     const TOTAL = DUST + STARS + BULGE;
     const rnd = mulberry32(31337);
     const R = GALAXY.RADIUS;

@@ -39,6 +39,7 @@ export function MusicInteraction({
   const artistsRef = useRef(artists);
   const tracksRef = useRef(tracks);
   const down = useRef<{ x: number; y: number } | null>(null);
+  const dragging = useRef(false);
   const lastHover = useRef(0);
 
   artistsRef.current = artists;
@@ -55,14 +56,14 @@ export function MusicInteraction({
         const p = screenPoint(track.position, camera, rect);
         if (!p) continue;
         const d = Math.hypot(p.x - x, p.y - y);
-        if (d <= 46 && d < (best?.d ?? Infinity)) best = { d, hit: { kind: "track", track } };
+        if (d <= 72 && d < (best?.d ?? Infinity)) best = { d, hit: { kind: "track", track } };
       }
 
       for (const artist of artistsRef.current) {
         const p = screenPoint(artist.position, camera, rect);
         if (!p) continue;
         const d = Math.hypot(p.x - x, p.y - y);
-        if (d <= 56 && d < (best?.d ?? Infinity)) best = { d, hit: { kind: "artist", artist } };
+        if (d <= 108 && d < (best?.d ?? Infinity)) best = { d, hit: { kind: "artist", artist } };
       }
 
       return best?.hit ?? null;
@@ -75,13 +76,24 @@ export function MusicInteraction({
 
     const onDown = (event: PointerEvent) => {
       down.current = { x: event.clientX, y: event.clientY };
+      dragging.current = false;
     };
 
     const onMove = (event: PointerEvent) => {
+      const start = down.current;
+      if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) {
+        dragging.current = true;
+        canvas.style.cursor = "";
+        onHoverArtist(null);
+        onHoverTrack(null);
+        return;
+      }
+
       const now = performance.now();
-      if (now - lastHover.current < 80) return;
+      if (now - lastHover.current < 110) return;
       lastHover.current = now;
       const hit = pick(event.clientX, event.clientY);
+      canvas.style.cursor = hit ? "pointer" : "";
       onHoverArtist(hit?.kind === "artist" ? hit.artist : null);
       onHoverTrack(hit?.kind === "track" ? hit.track : null);
     };
@@ -89,7 +101,7 @@ export function MusicInteraction({
     const onUp = (event: PointerEvent) => {
       const start = down.current;
       down.current = null;
-      if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
+      if (!start || dragging.current || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
       const hit = pick(event.clientX, event.clientY);
       if (hit?.kind === "artist") onSelectArtist(hit.artist);
       if (hit?.kind === "track") onSelectTrack(hit.track);
@@ -99,6 +111,7 @@ export function MusicInteraction({
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     return () => {
+      canvas.style.cursor = "";
       canvas.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);

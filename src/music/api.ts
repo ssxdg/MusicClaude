@@ -23,8 +23,8 @@ function firstArtist(song: any) {
   return song.ar?.[0] || song.artists?.[0] || { id: 0, name: "未知歌手" };
 }
 
-function normalizeTrack(song: any): MusicTrack {
-  const artist = firstArtist(song);
+function normalizeTrack(song: any, forcedArtist?: { id: number; name: string }): MusicTrack {
+  const artist = forcedArtist || firstArtist(song);
   return {
     id: Number(song.id),
     name: song.name || "未命名歌曲",
@@ -77,9 +77,30 @@ export async function getUserPlaylists(userId: number, cookie: string): Promise<
 export async function getPlaylistGalaxy(id: number, cookie: string): Promise<MusicGalaxyData> {
   const detail = await request<{ playlist?: { trackIds?: { id: number }[]; tracks?: any[] } }>("/playlist/detail", { id }, cookie);
   const ids = (detail.playlist?.trackIds || []).map((track) => track.id).slice(0, 220);
-  if (!ids.length) return buildMusicGalaxy((detail.playlist?.tracks || []).map(normalizeTrack));
+  if (!ids.length) return buildMusicGalaxy((detail.playlist?.tracks || []).map((song) => normalizeTrack(song)));
   const songs = await request<{ songs: any[] }>("/song/detail", { ids: ids.join(",") }, cookie);
-  return buildMusicGalaxy((songs.songs || []).map(normalizeTrack));
+  return buildMusicGalaxy((songs.songs || []).map((song) => normalizeTrack(song)));
+}
+
+export async function getHotArtistGalaxy(artistLimit = 30, songsPerArtist = 10): Promise<MusicGalaxyData> {
+  const top = await request<{ artists?: any[] }>("/top/artists", { limit: artistLimit });
+  const artists = (top.artists || []).slice(0, artistLimit).map((artist) => ({
+    id: Number(artist.id),
+    name: artist.name || "未知歌手",
+  }));
+
+  const batches = await Promise.allSettled(
+    artists.map(async (artist) => {
+      const res = await request<{ songs?: any[] }>("/artist/top/song", { id: artist.id });
+      return (res.songs || []).slice(0, songsPerArtist).map((song) => normalizeTrack(song, artist));
+    }),
+  );
+
+  const tracks = batches
+    .flatMap((batch) => (batch.status === "fulfilled" ? batch.value : []))
+    .filter((track, index, all) => all.findIndex((item) => item.id === track.id) === index);
+
+  return buildMusicGalaxy(tracks);
 }
 
 export async function getSongUrl(id: number, cookie: string) {
@@ -94,5 +115,5 @@ export async function getLyric(id: number, cookie: string) {
 
 export async function searchSongs(keywords: string, cookie: string): Promise<MusicTrack[]> {
   const res = await request<{ result?: { songs?: any[] } }>("/search", { keywords, type: 1, limit: 24 }, cookie);
-  return buildMusicGalaxy((res.result?.songs || []).map(normalizeTrack)).tracks;
+  return buildMusicGalaxy((res.result?.songs || []).map((song) => normalizeTrack(song))).tracks;
 }

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { activeLyricIndex } from "./lyrics";
-import { checkQrSession, createQrSession, getAccount, getPlaylistGalaxy, getUserPlaylists, searchSongs } from "./api";
+import { checkQrSession, createQrSession, getAccount, getHotArtistGalaxy, getPlaylistGalaxy, getUserPlaylists, searchSongs } from "./api";
 import { clearCookie, readCookie, writeCookie } from "./storage";
 import { useAudioPlayer } from "./useAudioPlayer";
 import type { MusicArtist, MusicGalaxyData, MusicTrack, PlaylistSummary, QrSession, UserProfile } from "./types";
 import { useStore } from "../state/store";
 
 type Tab = "login" | "playlist" | "search";
+type GalaxySource = "public" | "playlist";
 
 interface MusicCloudUIProps {
   galaxy: MusicGalaxyData;
@@ -15,6 +16,8 @@ interface MusicCloudUIProps {
   selectedArtist: MusicArtist | null;
   onSelectedTrack: (track: MusicTrack | null) => void;
   onSelectedArtist: (artist: MusicArtist | null) => void;
+  onFocusSelected: () => void;
+  onOverview: () => void;
 }
 
 function formatTime(seconds: number) {
@@ -29,6 +32,8 @@ export function MusicCloudUI({
   selectedArtist,
   onSelectedTrack,
   onSelectedArtist,
+  onFocusSelected,
+  onOverview,
 }: MusicCloudUIProps) {
   const [cookie, setCookie] = useState(readCookie);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -38,6 +43,7 @@ export function MusicCloudUI({
   const [loginText, setLoginText] = useState("扫码登录后加载你的网易云歌单");
   const [playlists, setPlaylists] = useState<PlaylistSummary[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<number | null>(null);
+  const [galaxySource, setGalaxySource] = useState<GalaxySource>("public");
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<MusicTrack[]>([]);
@@ -46,6 +52,32 @@ export function MusicCloudUI({
   const player = useAudioPlayer(cookie);
   const quality = useStore((state) => state.quality);
   const toggleQuality = useStore((state) => state.toggleQuality);
+  const publicGalaxyStarted = useRef(false);
+
+  const loadPublicGalaxy = async (collapse = true) => {
+    publicGalaxyStarted.current = true;
+    setLoading(true);
+    setSelectedPlaylist(null);
+    setNotice("");
+    try {
+      const next = await getHotArtistGalaxy(30, 10);
+      setGalaxy(next);
+      player.setQueue(next.tracks);
+      onSelectedTrack(null);
+      onSelectedArtist(null);
+      setGalaxySource("public");
+      if (collapse) setCollapsed(true);
+    } catch {
+      setNotice("热门歌手星河加载失败：请确认网易云 API 服务正在 localhost:3000 运行。");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (publicGalaxyStarted.current || galaxy.tracks.length) return;
+    void loadPublicGalaxy(true);
+  }, []);
 
   useEffect(() => {
     if (!cookie) return;
@@ -116,6 +148,7 @@ export function MusicCloudUI({
     setTab("login");
     setNotice("");
     setLoginText("扫码登录后加载你的网易云歌单");
+    void loadPublicGalaxy(true);
   };
 
   const loadPlaylist = async (playlist: PlaylistSummary) => {
@@ -128,6 +161,7 @@ export function MusicCloudUI({
       player.setQueue(next.tracks);
       onSelectedTrack(null);
       onSelectedArtist(null);
+      setGalaxySource("playlist");
       setCollapsed(true);
     } catch {
       setNotice("歌单加载失败，请稍后重试。");
@@ -166,6 +200,12 @@ export function MusicCloudUI({
   const duration = player.playback.duration || (nowTrack?.duration || 0) / 1000 || 1;
   const tabTitle = profile ? profile.nickname : "扫码登录";
 
+  const openNowTrackPanel = () => {
+    if (!nowTrack) return;
+    onSelectedTrack(nowTrack);
+    onSelectedArtist(galaxy.artists.find((artist) => artist.id === nowTrack.artistId) ?? selectedArtist ?? null);
+  };
+
   useEffect(() => {
     if (activeLine < 0) return;
     lyricLineRefs.current[activeLine]?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -178,14 +218,16 @@ export function MusicCloudUI({
           音乐云 <span className="title-en">Music Cloud</span>
         </div>
         <div className="seg" title="音乐云模式">
-          <button className="seg-btn on">歌单星系</button>
-          <button className="seg-btn">歌手主星</button>
+          <button className={galaxySource === "playlist" ? "seg-btn on" : "seg-btn"} onClick={() => { setTab("playlist"); setCollapsed(false); }}>歌单星系</button>
+          <button className={galaxySource === "public" ? "seg-btn on" : "seg-btn"} onClick={() => void loadPublicGalaxy(true)}>热门歌手</button>
           <button className="seg-btn">歌曲行星</button>
         </div>
         <button className="filter on" onClick={() => setTab("playlist")}>
-          {galaxy.tracks.length ? `${galaxy.tracks.length} 首歌` : "选择歌单"}
+          {galaxy.tracks.length ? `${galaxy.tracks.length} 首歌` : "加载星河"}
         </button>
         <button className="filter" onClick={() => setTab("search")}>搜索</button>
+        <button className="filter" disabled={!selectedTrack && !selectedArtist} onClick={onFocusSelected}>聚焦</button>
+        <button className="filter" onClick={onOverview}>全景</button>
         <button className={quality === "high" ? "filter on" : "filter"} onClick={toggleQuality} title="切换星云画质">
           {quality === "high" ? "画质·高" : "画质·低"}
         </button>
@@ -235,6 +277,14 @@ export function MusicCloudUI({
 
         {!collapsed && tab === "playlist" && (
           <div className="search-results music-result-list">
+            <button
+              className={galaxySource === "public" ? "search-row on" : "search-row"}
+              type="button"
+              onClick={() => void loadPublicGalaxy(true)}
+            >
+              <span className="sr-name">热门歌手星河</span>
+              <span className="sr-meta">无需歌单</span>
+            </button>
             {playlists.map((playlist) => (
               <button
                 key={playlist.id}
@@ -328,6 +378,9 @@ export function MusicCloudUI({
           <b>{nowTrack?.name ?? "未选择歌曲"}</b>
           <span>{player.error || nowTrack?.artistName || "点击歌曲行星开始播放"}</span>
         </span>
+        <button className="music-lyrics-open" type="button" disabled={!nowTrack} onClick={openNowTrackPanel}>
+          歌词
+        </button>
         <span className="speed music-transport">
           <button onClick={player.previous}>上一首</button>
           <button onClick={player.toggle}>{player.playback.isPlaying ? "暂停" : "播放"}</button>
