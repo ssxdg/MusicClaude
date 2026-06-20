@@ -5,14 +5,14 @@ function unit(seed: number) {
   return x - Math.floor(x);
 }
 
-function artistPosition(id: number, index: number): [number, number, number] {
+export function musicArtistPosition(id: number, index: number): [number, number, number] {
   const radius = 900 + unit(id) * 2600;
   const angle = index * 2.399963 + unit(id + 4) * Math.PI;
   const y = (unit(id + 17) - 0.5) * 1000;
   return [Math.cos(angle) * radius, y, Math.sin(angle) * radius];
 }
 
-function trackPosition(artist: MusicArtist, id: number, index: number, total: number): [number, number, number] {
+export function musicTrackPosition(artist: MusicArtist, id: number, index: number, total: number): [number, number, number] {
   const radius = 130 + (index % 9) * 44 + unit(id) * 24;
   const angle = (index / Math.max(total, 1)) * Math.PI * 2 + unit(id + 3);
   return [
@@ -29,7 +29,7 @@ export function buildMusicGalaxy(tracks: MusicTrack[]): MusicGalaxyData {
       artists.set(track.artistId, {
         id: track.artistId,
         name: track.artistName,
-        position: artistPosition(track.artistId, artists.size),
+        position: musicArtistPosition(track.artistId, artists.size),
         trackIds: [],
       });
     }
@@ -39,7 +39,7 @@ export function buildMusicGalaxy(tracks: MusicTrack[]): MusicGalaxyData {
   const positionedTracks = tracks.map((track) => {
     const artist = artists.get(track.artistId)!;
     const localIndex = artist.trackIds.indexOf(track.id);
-    return { ...track, position: trackPosition(artist, track.id, localIndex, artist.trackIds.length) };
+    return { ...track, position: musicTrackPosition(artist, track.id, localIndex, artist.trackIds.length) };
   });
 
   return { artists: Array.from(artists.values()), tracks: positionedTracks };

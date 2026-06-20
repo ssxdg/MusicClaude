@@ -8,11 +8,17 @@ import { useStore } from "./state/store";
 import { MusicCloudUI } from "./music/MusicCloudUI";
 import { MusicStars } from "./music/MusicStars";
 import { MusicInteraction } from "./music/MusicInteraction";
+import { musicArtistPosition, musicTrackPosition } from "./music/galaxy";
 import { musicTrackOrbitPosition } from "./music/orbitLayout";
 import type { MusicArtist, MusicGalaxyData, MusicTrack } from "./music/types";
 
 const emptyGalaxy: MusicGalaxyData = { artists: [], tracks: [] };
 const DPR_MAX = WEAK ? 1.5 : 2;
+export type MusicFocusMode = "lock" | "glide" | "none";
+
+function hasArtistSystem(artist: MusicArtist | null | undefined) {
+  return !!artist && artist.trackIds.length > 1;
+}
 
 export default function App() {
   const quality = useStore((s) => s.quality);
@@ -24,7 +30,8 @@ export default function App() {
   const lockSeq = useRef(0);
   const [musicLockTarget, setMusicLockTarget] = useState<{
     key: string;
-    kind: "artist" | "track";
+    kind: "artist" | "track" | "overview";
+    mode: "lock" | "glide";
     target: [number, number, number];
   } | null>(null);
 
@@ -48,34 +55,102 @@ export default function App() {
     };
   }, [hoveredArtist, hoveredTrack]);
 
-  const lockMusicTarget = (kind: "artist" | "track", id: number, target: [number, number, number]) => {
+  const lockMusicTarget = (
+    kind: "artist" | "track" | "overview",
+    id: number | string,
+    target: [number, number, number],
+    mode: "lock" | "glide",
+  ) => {
     lockSeq.current += 1;
-    setMusicLockTarget({ key: `${kind}:${id}:${lockSeq.current}`, kind, target });
+    setMusicLockTarget({ key: `${kind}:${id}:${lockSeq.current}`, kind, mode, target });
   };
 
-  const trackOrbitPosition = (track: MusicTrack) => {
-    const artist = galaxy.artists.find((item) => item.id === track.artistId);
-    if (!artist) return track.position;
-    return musicTrackOrbitPosition(artist, track, galaxy.tracks.filter((item) => item.artistId === artist.id));
+  const resetMusicView = () => {
+    lockMusicTarget("overview", "galaxy", [0, 0, 0], "glide");
   };
 
-  const selectTrack = (track: MusicTrack | null) => {
-    setSelectedTrack(track);
-    setSelectedArtist(track ? galaxy.artists.find((artist) => artist.id === track.artistId) ?? null : null);
-    if (track) lockMusicTarget("track", track.id, trackOrbitPosition(track));
-    else setMusicLockTarget(null);
+  const trackOrbitPosition = (track: MusicTrack, artist?: MusicArtist | null, tracks = galaxy.tracks) => {
+    const visibleArtist = artist ?? galaxy.artists.find((item) => item.id === track.artistId) ?? null;
+    if (!visibleArtist || !hasArtistSystem(visibleArtist)) return track.position;
+    return musicTrackOrbitPosition(visibleArtist, track, tracks.filter((item) => item.artistId === visibleArtist.id));
   };
 
-  const selectArtist = (artist: MusicArtist | null) => {
+  const ensureTrackInGalaxy = (track: MusicTrack) => {
+    const existingTrack = galaxy.tracks.find((item) => item.id === track.id);
+    if (existingTrack) {
+      return {
+        artist: galaxy.artists.find((item) => item.id === existingTrack.artistId) ?? null,
+        track: existingTrack,
+        tracks: galaxy.tracks,
+      };
+    }
+
+    const existingArtist = galaxy.artists.find((item) => item.id === track.artistId);
+    if (existingArtist) {
+      const nextArtist: MusicArtist = { ...existingArtist, trackIds: [...existingArtist.trackIds, track.id] };
+      const nextTrack: MusicTrack = {
+        ...track,
+        position: musicTrackPosition(nextArtist, track.id, existingArtist.trackIds.length, nextArtist.trackIds.length),
+      };
+      const nextTracks = [...galaxy.tracks, nextTrack];
+      setGalaxy({
+        artists: galaxy.artists.map((artist) => (artist.id === nextArtist.id ? nextArtist : artist)),
+        tracks: nextTracks,
+      });
+      return { artist: nextArtist, track: nextTrack, tracks: nextTracks };
+    }
+
+    const nextArtist: MusicArtist = {
+      id: track.artistId,
+      name: track.artistName,
+      position: musicArtistPosition(track.artistId, galaxy.artists.length),
+      trackIds: [track.id],
+    };
+    const nextTrack: MusicTrack = { ...track, position: musicTrackPosition(nextArtist, track.id, 0, 1) };
+    const nextTracks = [...galaxy.tracks, nextTrack];
+    setGalaxy({ artists: [...galaxy.artists, nextArtist], tracks: nextTracks });
+    return { artist: nextArtist, track: nextTrack, tracks: nextTracks };
+  };
+
+  const selectTrack = (track: MusicTrack | null, focusMode: MusicFocusMode = "glide") => {
+    if (!track) {
+      setSelectedTrack(null);
+      setSelectedArtist(null);
+      setMusicLockTarget(null);
+      return;
+    }
+
+    const visible = ensureTrackInGalaxy(track);
+    const visibleArtist = hasArtistSystem(visible.artist) ? visible.artist : null;
+    setSelectedTrack(visible.track);
+    setSelectedArtist(visibleArtist);
+    if (focusMode !== "none") {
+      lockMusicTarget(
+        "track",
+        visible.track.id,
+        trackOrbitPosition(visible.track, visibleArtist, visible.tracks),
+        focusMode,
+      );
+    }
+  };
+
+  const selectArtist = (artist: MusicArtist | null, focusMode: MusicFocusMode = "lock") => {
+    if (artist && !hasArtistSystem(artist)) {
+      const onlyTrack = galaxy.tracks.find((track) => track.artistId === artist.id) ?? null;
+      selectTrack(onlyTrack, focusMode);
+      return;
+    }
+
     setSelectedArtist(artist);
     setSelectedTrack(null);
-    if (artist) lockMusicTarget("artist", artist.id, artist.position);
+    if (artist && focusMode !== "none") lockMusicTarget("artist", artist.id, artist.position, focusMode);
     else setMusicLockTarget(null);
   };
 
   const playFromCanvas = (track: MusicTrack) => {
-    selectTrack(track);
-    (window as unknown as { musicCloudPlayTrack?: (track: MusicTrack) => void }).musicCloudPlayTrack?.(track);
+    selectTrack(track, "lock");
+    (window as unknown as { musicCloudPlayTrack?: (track: MusicTrack, queue?: MusicTrack[], focusMode?: MusicFocusMode) => void })
+      .musicCloudPlayTrack?.(track, galaxy.tracks, "none");
   };
 
   const selectArtistFromCanvas = (artist: MusicArtist) => {
@@ -125,6 +200,7 @@ export default function App() {
         selectedArtist={selectedArtist}
         onSelectedTrack={selectTrack}
         onSelectedArtist={selectArtist}
+        onResetView={resetMusicView}
       />
 
       {!galaxy.tracks.length && (

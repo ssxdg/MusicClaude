@@ -5,6 +5,7 @@ import { clearCookie, readCookie, writeCookie } from "./storage";
 import { useAudioPlayer } from "./useAudioPlayer";
 import type { MusicArtist, MusicGalaxyData, MusicTrack, PlaylistSummary, QrSession, UserProfile } from "./types";
 import { useStore } from "../state/store";
+import type { MusicFocusMode } from "../App";
 
 type Tab = "login" | "playlist" | "search";
 type GalaxySource = "public" | "playlist";
@@ -14,8 +15,9 @@ interface MusicCloudUIProps {
   setGalaxy: (galaxy: MusicGalaxyData) => void;
   selectedTrack: MusicTrack | null;
   selectedArtist: MusicArtist | null;
-  onSelectedTrack: (track: MusicTrack | null) => void;
-  onSelectedArtist: (artist: MusicArtist | null) => void;
+  onSelectedTrack: (track: MusicTrack | null, focusMode?: MusicFocusMode) => void;
+  onSelectedArtist: (artist: MusicArtist | null, focusMode?: MusicFocusMode) => void;
+  onResetView: () => void;
 }
 
 function formatTime(seconds: number) {
@@ -30,6 +32,7 @@ export function MusicCloudUI({
   selectedArtist,
   onSelectedTrack,
   onSelectedArtist,
+  onResetView,
 }: MusicCloudUIProps) {
   const [cookie, setCookie] = useState(readCookie);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -61,6 +64,7 @@ export function MusicCloudUI({
       player.setQueue(next.tracks);
       onSelectedTrack(null);
       onSelectedArtist(null);
+      onResetView();
       setGalaxySource("public");
       if (collapse) setCollapsed(true);
     } catch {
@@ -157,6 +161,7 @@ export function MusicCloudUI({
       player.setQueue(next.tracks);
       onSelectedTrack(null);
       onSelectedArtist(null);
+      onResetView();
       setGalaxySource("playlist");
       setCollapsed(true);
     } catch {
@@ -177,15 +182,15 @@ export function MusicCloudUI({
     }
   };
 
-  const playTrack = (track: MusicTrack, queue = galaxy.tracks) => {
-    onSelectedTrack(track);
+  const playTrack = (track: MusicTrack, queue = galaxy.tracks, focusMode: MusicFocusMode = "glide") => {
+    onSelectedTrack(track, focusMode);
     void player.playTrack(track, queue.length ? queue : [track]);
   };
 
   useEffect(() => {
-    (window as unknown as { musicCloudPlayTrack?: (track: MusicTrack) => void }).musicCloudPlayTrack = playTrack;
+    (window as unknown as { musicCloudPlayTrack?: (track: MusicTrack, queue?: MusicTrack[], focusMode?: MusicFocusMode) => void }).musicCloudPlayTrack = playTrack;
     return () => {
-      delete (window as unknown as { musicCloudPlayTrack?: (track: MusicTrack) => void }).musicCloudPlayTrack;
+      delete (window as unknown as { musicCloudPlayTrack?: (track: MusicTrack, queue?: MusicTrack[], focusMode?: MusicFocusMode) => void }).musicCloudPlayTrack;
     };
   });
 
@@ -197,7 +202,7 @@ export function MusicCloudUI({
 
   const openNowTrackPanel = () => {
     if (!nowTrack) return;
-    onSelectedTrack(nowTrack);
+    onSelectedTrack(nowTrack, "none");
   };
 
   useEffect(() => {

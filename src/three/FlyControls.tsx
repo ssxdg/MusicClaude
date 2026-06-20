@@ -50,7 +50,8 @@ const _flyV = new THREE.Vector3();
 
 export interface MusicLockTarget {
   key: string;
-  kind: "artist" | "track";
+  kind: "artist" | "track" | "overview";
+  mode: "lock" | "glide";
   target: [number, number, number];
 }
 
@@ -228,9 +229,12 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
         drag.current.lastY = e.clientY;
         drag.current.moved += Math.abs(dx) + Math.abs(dy);
         if (musicLockRef.current && !musicLockReleased.current) {
-          lock.current.yaw -= dx * 0.005;
-          lock.current.pitch = Math.max(-1.4, Math.min(1.4, lock.current.pitch + dy * 0.005));
-          return;
+          if (musicLockRef.current.mode === "lock") {
+            lock.current.yaw -= dx * 0.005;
+            lock.current.pitch = Math.max(-1.4, Math.min(1.4, lock.current.pitch + dy * 0.005));
+            return;
+          }
+          musicLockReleased.current = true;
         }
         if (st().lockPoetId) {
           // locked → drag ORBITS the view around the target (does NOT release the lock)
@@ -340,8 +344,11 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
     };
     const onWheel = (e: WheelEvent) => {
       if (musicLockRef.current && !musicLockReleased.current) {
-        lock.current.dist = Math.min(6000, Math.max(80, lock.current.dist * (e.deltaY > 0 ? 1.12 : 0.89)));
-        return;
+        if (musicLockRef.current.mode === "lock") {
+          lock.current.dist = Math.min(6000, Math.max(80, lock.current.dist * (e.deltaY > 0 ? 1.12 : 0.89)));
+          return;
+        }
+        musicLockReleased.current = true;
       }
       if (st().lockPoetId) {
         // locked → wheel adjusts the orbit DISTANCE (zoom in/out on the target)
@@ -395,7 +402,7 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
       const key = `music:${musicLock.key}`;
       if (lock.current.key !== key) {
         lock.current.key = key;
-        lock.current.dist = musicLock.kind === "track" ? 720 : 1350;
+        lock.current.dist = musicLock.kind === "track" ? 720 : musicLock.kind === "artist" ? 1350 : 5600;
         const cur = _camOff.subVectors(camera.position, target);
         const d = cur.length();
         if (d > 1) {
@@ -416,6 +423,9 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
       const m = _mat.lookAt(camera.position, target, tmpUp.current);
       camera.quaternion.slerp(_quat.setFromRotationMatrix(m), k);
       euler.current.setFromQuaternion(camera.quaternion);
+      if (musicLock.mode === "glide" && camera.position.distanceTo(desired) < (musicLock.kind === "overview" ? 120 : 36)) {
+        musicLockReleased.current = true;
+      }
       return;
     }
 

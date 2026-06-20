@@ -19,6 +19,10 @@ type Hit = { kind: "artist"; artist: MusicArtist } | { kind: "track"; track: Mus
 
 const projected = new THREE.Vector3();
 
+function hasArtistSystem(artist: MusicArtist | null | undefined) {
+  return !!artist && artist.trackIds.length > 1;
+}
+
 function screenPoint(pos: [number, number, number], camera: THREE.Camera, rect: DOMRect) {
   const [wx, wz] = spinXZ(pos[0], pos[2]);
   projected.set(wx, pos[1], wz).project(camera);
@@ -56,7 +60,7 @@ export function MusicInteraction({
       const x = clientX - rect.left;
       const y = clientY - rect.top;
       let best: { d: number; hit: Hit } | null = null;
-      const selectedArtist = artistsRef.current.find((artist) => artist.id === selectedArtistIdRef.current) ?? null;
+      const selectedArtist = artistsRef.current.find((artist) => artist.id === selectedArtistIdRef.current && hasArtistSystem(artist)) ?? null;
       const selectedArtistTracks = selectedArtist
         ? tracksRef.current.filter((track) => track.artistId === selectedArtist.id)
         : [];
@@ -73,6 +77,7 @@ export function MusicInteraction({
       }
 
       for (const artist of artistsRef.current) {
+        if (!hasArtistSystem(artist)) continue;
         const p = screenPoint(artist.position, camera, rect);
         if (!p) continue;
         const d = Math.hypot(p.x - x, p.y - y);
