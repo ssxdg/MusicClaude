@@ -375,8 +375,10 @@
 
   .music-cloud-app {
     min-height: 100vh;
-    padding: 88px 12px 104px;
-    overflow: auto;
+    /* 当前音乐云使用固定 HUD 与独立滚动抽屉，应用根节点本身不能再沿用旧版卡片流布局；
+       否则移动端会生成整页纵向滚动条，挤窄 WebGL 画布并在右侧留下黑色条带。 */
+    padding: 0;
+    overflow: hidden;
   }
 
   .music-cloud-app canvas {
@@ -2882,6 +2884,7 @@ canvas {
 .music-detail-panel {
   z-index: 45;
   isolation: isolate;
+  animation: music-panel-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .music-detail-panel .panel-close {
@@ -3057,12 +3060,51 @@ canvas {
   text-overflow: ellipsis;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
   white-space: nowrap;
+  animation: music-label-in 180ms ease-out both;
+}
+
+/* 标签和详情采用短促的淡入位移，呼应诗云选中星体后的渐进反馈，同时避免长动画拖慢操作节奏。 */
+@keyframes music-label-in {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-26px) scale(1);
+  }
+}
+
+@keyframes music-panel-in {
+  from {
+    opacity: 0;
+    transform: translate(18px, -50%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
 }
 
 .music-track-label {
   display: grid;
   gap: 2px;
   transform: translateY(-26px);
+}
+
+@media (max-width: 600px) {
+  /* 手机端沿用诗云原有的底部抽屉动画，不能套用桌面端以 top:50% 为基准的居中位移。 */
+  .music-detail-panel {
+    animation: sheet-up 280ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music-detail-panel,
+  .music-star-label,
+  .music-track-label {
+    animation: none;
+  }
 }
 
 .music-track-label span {

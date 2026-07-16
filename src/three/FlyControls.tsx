@@ -10,7 +10,7 @@ import { pickTargets } from "./picking";
 import { spinXZ, unspinXZ, SPIN_RATE, GALAXY } from "./galaxyParams";
 import { poemPosition, poetPosition, poemSystemRadius } from "./positions";
 import { COARSE } from "./detectQuality";
-import { centroid, pinchDistance, thrustFromDrag, pinchSpeed, classifyGesture, type Pt } from "./touchGesture";
+import { centroid, pinchDistance, thrustFromDrag, pinchSpeed, classifyGesture, wheelDollyDistance, dampedDollyStep, type Pt } from "./touchGesture";
 
 const GRAVITY_R = GALAXY.RADIUS * 1.15; // inside this sphere the camera is "in the galaxy's grip"
 
@@ -47,6 +47,7 @@ const _off = new THREE.Vector3();
 const _mat = new THREE.Matrix4();
 const _quat = new THREE.Quaternion();
 const _flyV = new THREE.Vector3();
+const _wheelForward = new THREE.Vector3();
 
 export interface MusicLockTarget {
   key: string;
@@ -57,9 +58,10 @@ export interface MusicLockTarget {
 
 interface FlyControlsProps {
   musicLockTarget?: MusicLockTarget | null;
+  interactionMode?: "poetry" | "music";
 }
 
-export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
+export function FlyControls({ musicLockTarget = null, interactionMode = "poetry" }: FlyControlsProps) {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
   const euler = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
@@ -81,6 +83,8 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
   // analog fly thrust from a two-finger drag, in WASD convention (z<0 forward, x>0 right); {0,0} when
   // no touch-fly is active. Read in useFrame and ADDED on top of the keyboard fly vector.
   const touchThrust = useRef({ z: 0, x: 0 });
+  // 滚轮事件只累计目标位移，实际相机移动在渲染帧中按阻尼逐步消费，避免事件频率不均造成卡顿。
+  const wheelDollyRemaining = useRef(0);
   const musicLockRef = useRef<MusicLockTarget | null>(musicLockTarget);
   const musicLockReleased = useRef(false);
   const musicLockStartedAt = useRef(0);
@@ -89,6 +93,7 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
     musicLockRef.current = musicLockTarget;
     musicLockReleased.current = false;
     musicLockStartedAt.current = performance.now();
+    wheelDollyRemaining.current = 0;
     lock.current.key = "";
   } else {
     musicLockRef.current = musicLockTarget;
@@ -188,8 +193,10 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
     const isCameraGestureTarget = (target: EventTarget | null) => {
       const node = target instanceof Element ? target : null;
       if (!node || !node.closest(".music-cloud-app")) return false;
+      // 音乐详情和歌词区域必须完整保留原生滚动手势，否则在面板中拖动歌词时，
+      // 旧版全局相机监听器也会旋转镜头，造成页面与三维场景同时响应的割裂感。
       return !node.closest(
-        "button,input,textarea,select,a,.music-search,.music-player,.music-artist-tracks",
+        "button,input,textarea,select,a,.music-search,.music-player,.music-detail-panel,.music-artist-tracks",
       );
     };
     const onKeyDown = (e: KeyboardEvent) => {
@@ -265,11 +272,7 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
         drag.current.lastY = e.clientY;
         drag.current.moved += Math.abs(dx) + Math.abs(dy);
         if (musicLockRef.current && !musicLockReleased.current) {
-          if (musicLockRef.current.mode === "lock") {
-            lock.current.yaw -= dx * 0.005;
-            lock.current.pitch = Math.max(-1.4, Math.min(1.4, lock.current.pitch + dy * 0.005));
-            return;
-          }
+          // 音乐聚焦只是入场动画；用户一旦拖拽就立即接管方向，不再围绕固定目标旋转。
           musicLockReleased.current = true;
         }
         if (st().lockPoetId) {
@@ -290,6 +293,9 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
       // ── hover (DESKTOP only) ── touch has no hover, and the per-move GPU readback is a sync stall →
       // skip it entirely on coarse pointers. tap-pick (onUp) still resolves poets/planets on touch.
       if (COARSE) return;
+      // 音乐模式由 MusicInteraction 负责歌曲与歌手拾取。这里提前退出，既避免每次移动都读取
+      // 未挂载的诗人 GPU picker，也防止旧诗云 hover 状态在后台产生无意义更新。
+      if (interactionMode === "music") return;
       const now = performance.now();
       if (now - lastHover.current > 70) {
         lastHover.current = now;
@@ -342,6 +348,9 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
       const wasClick = had && drag.current.active && drag.current.pick && drag.current.moved < slop;
       drag.current.active = false;
       if (!wasClick) return;
+      // 音乐画布的点击结果由 MusicInteraction 唯一消费。旧逻辑若继续执行，会在点击歌曲的
+      // 同时调用 pullAt() 生成一首不可见的诗，导致两套状态机竞争同一次用户操作。
+      if (interactionMode === "music") return;
       const hit = screenPick(e.clientX, e.clientY, true); // click = poets + poem planets
       // void click → the hovered (already-highlighted) 赠诗 arc if any, else a fresh pick at click range
       const hov = useStore.getState().giftHoverId;
@@ -381,15 +390,18 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
     const onWheel = (e: WheelEvent) => {
       if (!isCameraGestureTarget(e.target)) return;
       if (musicLockRef.current && !musicLockReleased.current) {
-        if (musicLockRef.current.mode === "lock") {
-          lock.current.dist = Math.min(6000, Math.max(80, lock.current.dist * (e.deltaY > 0 ? 1.12 : 0.89)));
-          return;
-        }
+        // 滚轮与拖拽一致：立即终止音乐聚焦，让后续位移始终沿用户当前视线执行。
         musicLockReleased.current = true;
       }
       if (st().lockPoetId) {
         // locked → wheel adjusts the orbit DISTANCE (zoom in/out on the target)
         lock.current.dist = Math.min(6000, Math.max(40, lock.current.dist * (e.deltaY > 0 ? 1.12 : 0.89)));
+        return;
+      }
+      if (interactionMode === "music") {
+        // 限制累计量可以吸收连续滚轮输入，又不会因快速滚动积压过长的惯性动画。
+        const distance = wheelDollyDistance(e.deltaY, camera.position.length());
+        wheelDollyRemaining.current = Math.max(-2400, Math.min(2400, wheelDollyRemaining.current + distance));
         return;
       }
       speedMul.current = Math.min(80, Math.max(0.1, speedMul.current * (e.deltaY > 0 ? 0.82 : 1.22)));
@@ -427,7 +439,7 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [camera, gl]);
+  }, [camera, gl, interactionMode]);
 
   const tmpUp = useRef(new THREE.Vector3(0, 1, 0));
   useFrame((_, dt) => {
@@ -541,6 +553,18 @@ export function FlyControls({ musicLockTarget = null }: FlyControlsProps) {
         cp.z = -px * s + pz * c;
         euler.current.y += dA; // turn heading by the same amount → view stays galaxy-locked
         camera.quaternion.setFromEuler(euler.current);
+      }
+    }
+    if (interactionMode === "music") {
+      const remaining = wheelDollyRemaining.current;
+      if (Math.abs(remaining) > 0.05) {
+        // 每帧沿当前朝向消费一小段滚轮位移，因此缩放过程中仍可自由转向，手感更接近惯性推进。
+        const step = dampedDollyStep(remaining, Math.min(dt, 0.05));
+        camera.getWorldDirection(_wheelForward);
+        camera.position.addScaledVector(_wheelForward, step);
+        wheelDollyRemaining.current -= step;
+      } else {
+        wheelDollyRemaining.current = 0;
       }
     }
     const k = keys.current;

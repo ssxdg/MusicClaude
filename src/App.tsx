@@ -11,6 +11,7 @@ import { MusicInteraction } from "./music/MusicInteraction";
 import { musicArtistPosition, musicTrackPosition } from "./music/galaxy";
 import { musicTrackOrbitPosition } from "./music/orbitLayout";
 import type { MusicArtist, MusicGalaxyData, MusicTrack } from "./music/types";
+import type { Vector3 } from "three";
 
 const emptyGalaxy: MusicGalaxyData = { artists: [], tracks: [] };
 const DPR_MAX = WEAK ? 1.5 : 2;
@@ -27,6 +28,9 @@ export default function App() {
   const [selectedArtist, setSelectedArtist] = useState<MusicArtist | null>(null);
   const [hoveredTrack, setHoveredTrack] = useState<MusicTrack | null>(null);
   const [hoveredArtist, setHoveredArtist] = useState<MusicArtist | null>(null);
+  // 星体的可见位置会逐帧阻尼变化；在场景与拾取层之间共享同一个 Vector3 引用，
+  // 可以让点击命中始终跟随用户眼前的星体，而不是提前跳到动画的最终位置。
+  const liveTrackPositions = useRef(new Map<number, Vector3>());
   const lockSeq = useRef(0);
   const [musicLockTarget, setMusicLockTarget] = useState<{
     key: string;
@@ -66,6 +70,7 @@ export default function App() {
   };
 
   const releaseMusicFocus = () => {
+    // 关闭详情时同步清除音乐相机焦点，避免已隐藏的歌曲或歌手继续成为固定观察中心。
     setMusicLockTarget(null);
     const store = useStore.getState();
     store.unlock();
@@ -151,17 +156,18 @@ export default function App() {
     setSelectedArtist(artist);
     setSelectedTrack(null);
     if (artist && focusMode !== "none") lockMusicTarget("artist", artist.id, artist.position, focusMode);
-    else setMusicLockTarget(null);
+    else releaseMusicFocus();
   };
 
   const playFromCanvas = (track: MusicTrack) => {
-    selectTrack(track, "lock");
+    // 点击歌曲只触发一次短暂聚焦；聚焦结束后自动回到自由视角，不长期绑定观察中心。
+    selectTrack(track, "glide");
     (window as unknown as { musicCloudPlayTrack?: (track: MusicTrack, queue?: MusicTrack[], focusMode?: MusicFocusMode) => void })
       .musicCloudPlayTrack?.(track, galaxy.tracks, "none");
   };
 
   const selectArtistFromCanvas = (artist: MusicArtist) => {
-    selectArtist(artist, "lock");
+    selectArtist(artist, "glide");
   };
 
   return (
@@ -182,17 +188,20 @@ export default function App() {
           selectedArtistId={selectedArtist?.id ?? null}
           hoverTrackId={hoveredTrack?.id ?? null}
           hoverArtistId={hoveredArtist?.id ?? null}
+          liveTrackPositions={liveTrackPositions}
         />
         <MusicInteraction
           artists={galaxy.artists}
           tracks={galaxy.tracks}
           selectedArtistId={selectedArtist?.id ?? null}
+          liveTrackPositions={liveTrackPositions}
           onHoverArtist={setHoveredArtist}
           onHoverTrack={setHoveredTrack}
           onSelectArtist={selectArtistFromCanvas}
           onSelectTrack={playFromCanvas}
+          onClearSelection={() => selectTrack(null)}
         />
-        <FlyControls musicLockTarget={musicLockTarget} />
+        <FlyControls musicLockTarget={musicLockTarget} interactionMode="music" />
         {quality === "high" && (
           <EffectComposer>
             <Bloom intensity={1.4} luminanceThreshold={0.1} luminanceSmoothing={0.28} radius={0.85} mipmapBlur />

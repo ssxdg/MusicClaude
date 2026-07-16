@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { centroid, pinchDistance, thrustFromDrag, pinchSpeed, classifyGesture } from "./touchGesture";
+import * as touchGesture from "./touchGesture";
 
 describe("touchGesture — centroid / distance", () => {
   it("centroid is the midpoint", () => {
@@ -86,5 +87,74 @@ describe("touchGesture — classifyGesture (mode-lock: pan XOR pinch)", () => {
   it("a one-handed pinch (centroid drifts but distance dominates) → pinch, not pan", () => {
     // thumb anchored, index spreads 100px: centroid drifts ~50px, distance changes ~100px → pinch wins
     expect(classifyGesture(O, { x: 100, y: 150 }, 200, 300)).toBe("pinch");
+  });
+});
+
+describe("touchGesture — wheelDollyDistance（自由视角滚轮推拉）", () => {
+  const getWheelDollyDistance = () => {
+    // 先通过运行时断言表达期望接口，避免功能尚未实现时因为静态导入报错而跳过真正的红灯验证。
+    const fn = (touchGesture as unknown as {
+      wheelDollyDistance?: (deltaY: number, cameraDistance: number) => number;
+    }).wheelDollyDistance;
+    expect(fn).toBeTypeOf("function");
+    return fn!;
+  };
+
+  it("滚轮向上沿视线前进，向下沿视线后退", () => {
+    const wheelDollyDistance = getWheelDollyDistance();
+    expect(wheelDollyDistance(-100, 4000)).toBeGreaterThan(0);
+    expect(wheelDollyDistance(100, 4000)).toBeLessThan(0);
+  });
+
+  it("远景单次推拉距离大于近景，并限制最大步长", () => {
+    const wheelDollyDistance = getWheelDollyDistance();
+    const near = Math.abs(wheelDollyDistance(-100, 600));
+    const far = Math.abs(wheelDollyDistance(-100, 8000));
+    expect(far).toBeGreaterThan(near);
+    expect(far).toBeLessThanOrEqual(720);
+  });
+
+  it("零值或非法输入不会移动相机", () => {
+    const wheelDollyDistance = getWheelDollyDistance();
+    expect(wheelDollyDistance(0, 4000)).toBe(0);
+    expect(wheelDollyDistance(Number.NaN, 4000)).toBe(0);
+    expect(wheelDollyDistance(-100, Number.NaN)).toBe(0);
+  });
+});
+
+describe("touchGesture — dampedDollyStep（滚轮阻尼位移）", () => {
+  const getDampedDollyStep = () => {
+    // 使用运行时接口断言保留明确的红灯阶段：先证明阻尼函数尚不存在，再补充实现。
+    const fn = (touchGesture as unknown as {
+      dampedDollyStep?: (remaining: number, deltaSeconds: number) => number;
+    }).dampedDollyStep;
+    expect(fn).toBeTypeOf("function");
+    return fn!;
+  };
+
+  it("每帧只消费剩余位移的一部分，并保持移动方向", () => {
+    const dampedDollyStep = getDampedDollyStep();
+    const forward = dampedDollyStep(600, 1 / 60);
+    const backward = dampedDollyStep(-600, 1 / 60);
+    expect(forward).toBeGreaterThan(0);
+    expect(forward).toBeLessThan(600);
+    expect(backward).toBeLessThan(0);
+    expect(backward).toBeGreaterThan(-600);
+  });
+
+  it("不同帧率下经过相同时间得到近似一致的位移", () => {
+    const dampedDollyStep = getDampedDollyStep();
+    const oneFrame = dampedDollyStep(600, 1 / 30);
+    const firstHalf = dampedDollyStep(600, 1 / 60);
+    const secondHalf = dampedDollyStep(600 - firstHalf, 1 / 60);
+    expect(firstHalf + secondHalf).toBeCloseTo(oneFrame, 8);
+  });
+
+  it("零值、非法输入或非正帧间隔不会产生位移", () => {
+    const dampedDollyStep = getDampedDollyStep();
+    expect(dampedDollyStep(0, 1 / 60)).toBe(0);
+    expect(dampedDollyStep(Number.NaN, 1 / 60)).toBe(0);
+    expect(dampedDollyStep(600, Number.NaN)).toBe(0);
+    expect(dampedDollyStep(600, 0)).toBe(0);
   });
 });

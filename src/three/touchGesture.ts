@@ -70,3 +70,27 @@ export function classifyGesture(
   if (panDisp < threshold && pinchDisp < threshold) return null;
   return panDisp >= pinchDisp ? "pan" : "pinch";
 }
+
+/**
+ * 将滚轮增量换算为沿相机视线移动的世界距离。
+ * 远景需要更大的步长才能产生可见缩放，近景则按当前距离自然减速；指数曲线兼容普通滚轮
+ * 和触控板的小增量输入，最大步长限制可避免一次快速滚动直接穿过整个星系。
+ */
+export function wheelDollyDistance(deltaY: number, cameraDistance: number, maxStep = 720): number {
+  if (!Number.isFinite(deltaY) || !Number.isFinite(cameraDistance) || deltaY === 0 || maxStep <= 0) return 0;
+  const referenceDistance = Math.max(600, Math.abs(cameraDistance));
+  const easedDistance = referenceDistance * (1 - Math.exp(-Math.abs(deltaY) * 0.0011));
+  // 浏览器约定 deltaY < 0 表示向上滚动；返回正数代表沿相机朝向前进。
+  return -Math.sign(deltaY) * Math.min(maxStep, easedDistance);
+}
+
+/**
+ * 将滚轮累计位移按帧转换为带阻尼的实际位移。
+ * 使用与帧率无关的指数衰减，可以让高、低刷新率设备在相同时间内获得近似一致的缩放手感，
+ * 同时每帧只消费一部分剩余距离，避免滚轮事件直接修改相机位置造成明显跳帧。
+ */
+export function dampedDollyStep(remaining: number, deltaSeconds: number): number {
+  if (!Number.isFinite(remaining) || !Number.isFinite(deltaSeconds) || remaining === 0 || deltaSeconds <= 0) return 0;
+  const damping = 1 - Math.pow(0.0008, Math.min(deltaSeconds, 0.05));
+  return remaining * damping;
+}

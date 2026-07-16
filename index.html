@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>音乐云 · Music Cloud</title>
-    <meta name="description" content="一张可漫游的三维星图：真实诗人是星团，星团之间的虚空是一切可能的诗。" />
+    <meta name="description" content="本地网易云音乐三维播放器：歌手化作主星，歌曲围绕主星运行。" />
     <meta name="theme-color" content="#07080f" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
@@ -12,13 +12,13 @@
          (vite.config.ts) — unset it falls back to a root-relative path, which most CN apps and
          Telegram resolve; set it before deploy so Facebook/X also get an absolute URL. -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="诗云 · Poetry Cloud" />
-    <meta property="og:title" content="诗云 · Poetry Cloud — 一切可能的诗" />
-    <meta property="og:description" content="可漫游的三维星图：32,657 位真实诗人是星团，星团之间的虚空是一切可能的诗。点击虚空，捞起其中一首。" />
+    <meta property="og:site_name" content="音乐云 · Music Cloud" />
+    <meta property="og:title" content="音乐云 · Music Cloud" />
+    <meta property="og:description" content="在本地三维星河中浏览网易云歌单，歌手是主星，歌曲是行星。" />
     <meta property="og:image" content="__OG_ORIGIN__/og.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="诗云 · Poetry Cloud — 一切可能的诗" />
-    <meta name="twitter:description" content="可漫游的三维星图：真实诗人是星团，虚空是一切可能的诗。" />
+    <meta name="twitter:title" content="音乐云 · Music Cloud" />
+    <meta name="twitter:description" content="在本地三维星河中浏览网易云歌单。" />
     <meta name="twitter:image" content="__OG_ORIGIN__/og.jpg" />
   </head>
   <body>
@@ -30,15 +30,15 @@
       (function () {
         var msg = null;
         if (typeof BigInt === "undefined") {
-          msg = "你的浏览器过旧（缺少 BigInt），无法运行诗云的编号引擎。请换用较新的 Chrome / Edge / Safari / Firefox。";
+          msg = "你的浏览器过旧，无法运行音乐云的三维引擎。请换用较新的 Chrome / Edge / Safari / Firefox。";
         } else {
           try {
             var c = document.createElement("canvas");
             if (!c.getContext("webgl2") && !c.getContext("webgl")) {
-              msg = "此设备或浏览器没有可用的 WebGL，无法渲染诗云星图。请换用支持 WebGL 的浏览器，或检查显卡/远程桌面设置。";
+              msg = "此设备或浏览器没有可用的 WebGL，无法渲染音乐星图。请换用支持 WebGL 的浏览器，或检查显卡/远程桌面设置。";
             }
           } catch (e) {
-            msg = "此设备或浏览器没有可用的 WebGL，无法渲染诗云星图。";
+            msg = "此设备或浏览器没有可用的 WebGL，无法渲染音乐星图。";
           }
         }
         if (msg) {
@@ -47,7 +47,7 @@
           window.__SHIYUN_UNSUPPORTED__ = true;
           document.getElementById("root").innerHTML =
             '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#07080f;color:#d8c89a;font-family:serif;padding:24px;text-align:center">' +
-            '<div style="font-size:34px;letter-spacing:.3em;margin-bottom:18px">诗云</div>' +
+            '<div style="font-size:34px;letter-spacing:.3em;margin-bottom:18px">音乐云</div>' +
             '<div style="font-size:14px;line-height:1.8;max-width:30em;color:#b9c2d6">' + msg + "</div></div>";
         }
       })();

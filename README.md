@@ -1,5 +1,7 @@
 <div align="center">
 
+> 当前仓库入口已改造为仅供本地使用的「音乐云」MVP：运行 `npm run netease:api` 启动本地网易云接口，再运行 `npm run dev`。下方保留原「诗云」说明，作为三维交互、数据与视觉实现的来源文档。
+
 <img src="docs/assets/hero.jpg" alt="诗云 · Poetry Cloud —— 把中国三千年的诗放进一片三维星系" width="100%" />
 
 # 诗云 · Poetry Cloud

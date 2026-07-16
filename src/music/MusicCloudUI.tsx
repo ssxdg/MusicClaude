@@ -53,14 +53,21 @@ export function MusicCloudUI({
   const toggleQuality = useStore((state) => state.toggleQuality);
   const publicGalaxyStarted = useRef(false);
   const lastSyncedPlaybackTrackId = useRef<number | null>(null);
+  const galaxyRequestSeq = useRef(0);
+  const qrRequestSeq = useRef(0);
+  const searchRequestSeq = useRef(0);
 
   const loadPublicGalaxy = async (collapse = true) => {
+    const requestSeq = ++galaxyRequestSeq.current;
     publicGalaxyStarted.current = true;
     setLoading(true);
     setSelectedPlaylist(null);
     setNotice("");
     try {
       const next = await getHotArtistGalaxy(30, 10);
+      // 用户可能在热门星河尚未返回时选择歌单；只允许最后一次加载操作更新场景，
+      // 避免较慢的旧请求把刚刚选中的歌单覆盖回热门数据。
+      if (requestSeq !== galaxyRequestSeq.current) return;
       setGalaxy(next);
       player.setQueue(next.tracks);
       onSelectedTrack(null);
@@ -69,9 +76,11 @@ export function MusicCloudUI({
       setGalaxySource("public");
       if (collapse) setCollapsed(true);
     } catch {
-      setNotice("热门歌手星河加载失败：请确认网易云 API 服务正在 localhost:3000 运行。");
+      if (requestSeq === galaxyRequestSeq.current) {
+        setNotice("热门歌手星河加载失败：请确认网易云 API 服务正在 localhost:3000 运行。");
+      }
     } finally {
-      setLoading(false);
+      if (requestSeq === galaxyRequestSeq.current) setLoading(false);
     }
   };
 
@@ -82,41 +91,68 @@ export function MusicCloudUI({
 
   useEffect(() => {
     if (!cookie) return;
+    let cancelled = false;
     setLoading(true);
     getAccount(cookie)
       .then(async (account) => {
+        if (cancelled) return;
         setProfile(account);
         setQr(null);
         if (account) {
-          setPlaylists(await getUserPlaylists(account.userId, cookie));
+          const nextPlaylists = await getUserPlaylists(account.userId, cookie);
+          if (cancelled) return;
+          setPlaylists(nextPlaylists);
           setTab("playlist");
           setLoginText("已登录");
         }
       })
-      .catch(() => setNotice("无法读取账号，请确认网易云 API 服务正在 localhost:3000 运行。"))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!cancelled) setNotice("无法读取账号，请确认网易云 API 服务正在 localhost:3000 运行。");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      // Cookie 变化或组件卸载后，旧账号请求不得再覆盖新的登录状态。
+      cancelled = true;
+    };
   }, [cookie]);
 
   useEffect(() => {
     if (!qr || profile) return;
-    const id = window.setInterval(async () => {
+    let cancelled = false;
+    let timer = 0;
+    const poll = async () => {
+      let keepPolling = true;
       try {
         const result = await checkQrSession(qr.key);
+        if (cancelled) return;
         if (result.status === "waiting") setLoginText("等待手机扫码");
         if (result.status === "scanned") setLoginText("已扫码，请在手机上确认");
-        if (result.status === "expired") setLoginText("二维码已过期，请刷新");
+        if (result.status === "expired") {
+          setLoginText("二维码已过期，请刷新");
+          keepPolling = false;
+        }
         if (result.status === "error") setLoginText("登录状态检查失败");
         if (result.status === "authorized" && result.cookie) {
+          keepPolling = false;
           writeCookie(result.cookie);
           setCookie(result.cookie);
           setQr(null);
           setLoginText("登录成功，正在同步歌单");
         }
       } catch {
-        setLoginText("登录状态检查失败");
+        if (!cancelled) setLoginText("登录状态检查失败");
+      } finally {
+        // 使用递归 timeout，确保上一次请求结束后才安排下一次轮询，避免网络变慢时并发堆积。
+        if (!cancelled && keepPolling) timer = window.setTimeout(poll, 1800);
       }
-    }, 1800);
-    return () => window.clearInterval(id);
+    };
+    timer = window.setTimeout(poll, 1800);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [profile, qr]);
 
   const artistTracks = useMemo(() => {
@@ -125,18 +161,25 @@ export function MusicCloudUI({
   }, [galaxy.tracks, selectedArtist]);
 
   const startQr = async () => {
+    const requestSeq = ++qrRequestSeq.current;
     setLoginText("正在生成二维码");
     setNotice("");
     try {
-      setQr(await createQrSession());
+      const nextQr = await createQrSession();
+      // 用户连续刷新二维码时，仅接受最后一次请求，避免旧二维码覆盖当前轮询会话。
+      if (requestSeq !== qrRequestSeq.current) return;
+      setQr(nextQr);
       setLoginText("等待手机扫码");
     } catch {
+      if (requestSeq !== qrRequestSeq.current) return;
       setLoginText("二维码生成失败");
       setNotice("无法连接网易云 API。请先运行 npm run netease:api，再刷新页面重试。");
     }
   };
 
   const logout = () => {
+    qrRequestSeq.current += 1;
+    searchRequestSeq.current += 1;
     clearCookie();
     setCookie("");
     setProfile(null);
@@ -153,11 +196,13 @@ export function MusicCloudUI({
   };
 
   const loadPlaylist = async (playlist: PlaylistSummary) => {
+    const requestSeq = ++galaxyRequestSeq.current;
     setLoading(true);
     setSelectedPlaylist(playlist.id);
     setNotice("");
     try {
       const next = await getPlaylistGalaxy(playlist.id, cookie);
+      if (requestSeq !== galaxyRequestSeq.current) return;
       setGalaxy(next);
       player.setQueue(next.tracks);
       onSelectedTrack(null);
@@ -166,19 +211,25 @@ export function MusicCloudUI({
       setGalaxySource("playlist");
       setCollapsed(true);
     } catch {
-      setNotice("歌单加载失败，请稍后重试。");
+      if (requestSeq === galaxyRequestSeq.current) setNotice("歌单加载失败，请稍后重试。");
     } finally {
-      setLoading(false);
+      if (requestSeq === galaxyRequestSeq.current) setLoading(false);
     }
   };
 
   const runSearch = async (event: FormEvent) => {
     event.preventDefault();
     if (!search.trim()) return;
+    const requestSeq = ++searchRequestSeq.current;
+    const keyword = search.trim();
     setNotice("");
     try {
-      setSearchResults(await searchSongs(search.trim(), cookie));
+      const results = await searchSongs(keyword, cookie);
+      // 快速连续搜索时，只展示最新关键词的结果，防止较慢的旧请求反向覆盖界面。
+      if (requestSeq !== searchRequestSeq.current) return;
+      setSearchResults(results);
     } catch {
+      if (requestSeq !== searchRequestSeq.current) return;
       setNotice("搜索失败：请确认网易云 API 服务正在 localhost:3000 运行。");
     }
   };
@@ -231,12 +282,12 @@ export function MusicCloudUI({
         <div className="seg" title="音乐云模式">
           <button className={galaxySource === "playlist" ? "seg-btn on" : "seg-btn"} onClick={() => { setTab("playlist"); setCollapsed(false); }}>歌单星系</button>
           <button className={galaxySource === "public" ? "seg-btn on" : "seg-btn"} onClick={() => void loadPublicGalaxy(true)}>热门歌手</button>
-          <button className="seg-btn">歌曲行星</button>
+          <button className="seg-btn" onClick={onResetView}>重置视角</button>
         </div>
-        <button className="filter on" onClick={() => setTab("playlist")}>
+        <button className="filter on" onClick={() => { setTab("playlist"); setCollapsed(false); }}>
           {galaxy.tracks.length ? `${galaxy.tracks.length} 首歌` : "加载星河"}
         </button>
-        <button className="filter" onClick={() => setTab("search")}>搜索</button>
+        <button className="filter" onClick={() => { setTab("search"); setCollapsed(false); }}>搜索</button>
         <button className={quality === "high" ? "filter on" : "filter"} onClick={toggleQuality} title="切换星云画质">
           {quality === "high" ? "画质·高" : "画质·低"}
         </button>
@@ -312,7 +363,7 @@ export function MusicCloudUI({
         {!collapsed && tab === "search" && (
           <>
             <form className="music-search-form" onSubmit={runSearch}>
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索歌曲或歌手，回车播放第一批结果" />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索歌曲或歌手，回车查看结果" />
             </form>
             {searchResults.length > 0 && (
               <div className="search-results music-result-list">
@@ -402,6 +453,7 @@ export function MusicCloudUI({
             step="0.1"
             value={Math.min(player.playback.progress, duration)}
             onChange={(event) => player.seek(Number(event.target.value))}
+            aria-label="播放进度"
           />
           <span>{nowTrack ? formatTime(duration) : "00:00"}</span>
           <input
